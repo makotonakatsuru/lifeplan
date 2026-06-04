@@ -637,11 +637,50 @@
     </div>
 
     <div class="sidebar-section">
-      <div class="section-label">支出</div>
-      <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">生活費（月）</span><span class="slider-val" id="v-seikatsu">18万</span><button class="kakeibo-btn" onclick="importFromKakeibo()">家計簿から反映</button></div>
-        <input type="range" id="seikatsu" min="5" max="50" value="18" step="1" oninput="update()">
+      <div class="section-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>生活費（月別）</span>
+        <button class="kakeibo-btn" onclick="importFromKakeibo()">家計簿から反映</button>
       </div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px;padding:6px 8px;background:var(--bg3);border-radius:6px;display:flex;justify-content:space-between">
+        <span>生活費合計</span>
+        <span id="v-seikatsu-total" style="color:var(--accent);font-family:'DM Mono',monospace;font-weight:500">17万円/月</span>
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">食費（月）</span><span class="slider-val" id="v-cat_food">6万</span></div>
+        <input type="range" id="cat_food" min="0" max="20" value="6" step="0.5" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">外食（月）</span><span class="slider-val" id="v-cat_eat_out">2万</span></div>
+        <input type="range" id="cat_eat_out" min="0" max="10" value="2" step="0.5" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">交通費（月）</span><span class="slider-val" id="v-cat_transport">2万</span></div>
+        <input type="range" id="cat_transport" min="0" max="10" value="2" step="0.5" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">通信費（月）</span><span class="slider-val" id="v-cat_comms">1万</span></div>
+        <input type="range" id="cat_comms" min="0" max="5" value="1" step="0.5" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">光熱費（月）</span><span class="slider-val" id="v-cat_utility">2万</span></div>
+        <input type="range" id="cat_utility" min="0" max="10" value="2" step="0.5" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">医療費（月）</span><span class="slider-val" id="v-cat_medical">1万</span></div>
+        <input type="range" id="cat_medical" min="0" max="5" value="1" step="0.5" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">娯楽（月）</span><span class="slider-val" id="v-cat_leisure">1万</span></div>
+        <input type="range" id="cat_leisure" min="0" max="10" value="1" step="0.5" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">その他（月）</span><span class="slider-val" id="v-cat_other">2万</span></div>
+        <input type="range" id="cat_other" min="0" max="10" value="2" step="0.5" oninput="update()">
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">住居・その他支出</div>
       <div class="slider-row">
         <div class="slider-header"><span class="slider-label">住居費（月）</span><span class="slider-val" id="v-juukyo">2万</span></div>
         <input type="range" id="juukyo" min="0" max="20" value="2" step="1" oninput="update()">
@@ -749,7 +788,22 @@
 </div>
 
 <script>
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
+
+// カテゴリ別生活費スライダーID一覧
+const CAT_IDS = ['cat_food','cat_eat_out','cat_transport','cat_comms','cat_utility','cat_medical','cat_leisure','cat_other'];
+
+// 家計簿カテゴリ名 → スライダーIDのマッピング
+const CAT_MAP = {
+  '食費':        'cat_food',
+  '外食':        'cat_eat_out',
+  '交通費':      'cat_transport',
+  '通信費':      'cat_comms',
+  '水道光熱費':  'cat_utility',
+  '医療費':      'cat_medical',
+  '娯楽':        'cat_leisure',
+  // 上記以外（日用品・衣類・教育・保険・税金・その他支出など）→ cat_other に集約
+};
 const VERSION_URL = 'version.json';
 
 const SU = 'https://rpalacpkyloamikjmtri.supabase.co';
@@ -898,37 +952,71 @@ async function importFromKakeibo() {
   const btn = document.querySelector('.kakeibo-btn');
   btn.disabled = true; btn.textContent = '取得中...';
   try {
-    // 直近6ヶ月の年月リストを生成
-    const months = [];
+    // 直近6ヶ月の範囲を生成
     const now = new Date();
+    const months = [];
     for (let i = 0; i < 6; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       months.push(d.getFullYear()+'-'+(String(d.getMonth()+1).padStart(2,'0')));
     }
     const oldest = months[months.length-1]+'-01';
     const newest = months[0]+'-31';
-    // entriesテーブルから取得
-    const url = SU+'/rest/v1/entries?select=amount,date&type=eq.exp&user_id=eq.'+userId
+
+    // カテゴリ付きで取得
+    const url = SU+'/rest/v1/entries?select=amount,date,category&type=eq.exp&user_id=eq.'+userId
       +'&date=gte.'+oldest+'&date=lte.'+newest+'&order=date.asc';
     const r = await apiFetch(url, {headers: H()});
     if (!r.ok) throw new Error('データ取得失敗');
     const rows = await r.json();
     if (!rows.length) { toast('家計簿に支出データがありません'); btn.disabled=false; btn.textContent='家計簿から反映'; return; }
-    // 月ごとに集計
-    const byMonth = {};
+
+    // カテゴリ×月ごとに集計
+    // catMonthly[sliderId][月] = 合計金額
+    const catMonthly = {};
+    CAT_IDS.forEach(id => { catMonthly[id] = {}; });
+
     for (const row of rows) {
       const m = row.date.slice(0,7);
-      byMonth[m] = (byMonth[m]||0) + row.amount;
+      const sliderId = CAT_MAP[row.category] || 'cat_other';
+      if (!catMonthly[sliderId][m]) catMonthly[sliderId][m] = 0;
+      catMonthly[sliderId][m] += row.amount;
     }
-    const totals = Object.values(byMonth);
-    const avg = totals.reduce((a,b)=>a+b,0) / totals.length;
-    const avgMan = Math.round(avg / 10000);
-    // スライダーの範囲にクランプ
-    const slider = document.getElementById('seikatsu');
-    const clamped = Math.min(Math.max(avgMan, parseInt(slider.min)), parseInt(slider.max));
-    slider.value = clamped;
+
+    // 月の集合（データが存在した月）
+    const allMonths = [...new Set(rows.map(r => r.date.slice(0,7)))];
+    const numMonths = allMonths.length;
+
+    // 各スライダーに反映
+    // 娯楽・医療費は中央値、その他は平均
+    const medianCats = new Set(['cat_medical','cat_leisure']);
+    let reflectedCount = 0;
+
+    for (const id of CAT_IDS) {
+      const slider = document.getElementById(id);
+      if (!slider) continue;
+      const monthlyVals = allMonths.map(m => (catMonthly[id][m] || 0));
+      let valYen;
+      if (medianCats.has(id)) {
+        // 中央値（0を含む月も対象）
+        const sorted = [...monthlyVals].sort((a,b) => a-b);
+        const mid = Math.floor(sorted.length / 2);
+        valYen = sorted.length % 2 === 0 ? (sorted[mid-1]+sorted[mid])/2 : sorted[mid];
+      } else {
+        // 平均
+        valYen = monthlyVals.reduce((a,b)=>a+b,0) / numMonths;
+      }
+      const valMan = valYen / 10000;
+      // 0.5刻みでクランプ
+      const step = parseFloat(slider.step) || 0.5;
+      const rounded = Math.round(valMan / step) * step;
+      const clamped = Math.min(Math.max(rounded, parseFloat(slider.min)), parseFloat(slider.max));
+      slider.value = clamped;
+      reflectedCount++;
+    }
+
     update();
-    toast('生活費を月平均 '+avgMan+'万円に反映しました（直近'+totals.length+'ヶ月）');
+    const totalMan = CAT_IDS.reduce((s,k) => s + g(k), 0);
+    toast(`家計簿から反映しました（合計 ${totalMan.toFixed(1)}万円/月・直近${numMonths}ヶ月）`);
   } catch(e) { toast('反映に失敗しました: '+e.message); }
   btn.disabled = false; btn.textContent = '家計簿から反映';
 }
@@ -947,7 +1035,7 @@ async function loadFromDB() {
       const arr = await rSets.json();
       if (arr.length && arr[0].settings) {
         const s = arr[0].settings;
-        ['age','retire','life','salary','jigyou','nenkin','toshi','seikatsu','juukyo','sonota','savings','chochiku','rimawari','tori'].forEach(k => {
+        ['age','retire','life','salary','jigyou','nenkin','toshi','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS].forEach(k => {
           if (s[k] !== undefined) document.getElementById(k).value = s[k];
         });
       }
@@ -983,7 +1071,7 @@ async function saveAll() {
   if (!userId) { toast('ログインが必要です'); return; }
   try {
     const s = {};
-    ['age','retire','life','salary','jigyou','nenkin','toshi','seikatsu','juukyo','sonota','savings','chochiku','rimawari','tori'].forEach(k => {
+    ['age','retire','life','salary','jigyou','nenkin','toshi','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS].forEach(k => {
       s[k] = parseFloat(document.getElementById(k).value);
     });
 
@@ -1032,7 +1120,8 @@ function g(id) { return parseFloat(document.getElementById(id).value); }
 function calcPlan() {
   const age = Math.round(g('age')), retire = Math.round(g('retire')), life = Math.round(g('life'));
   const salary = g('salary'), jigyou = g('jigyou'), nenkin = g('nenkin'), toshi = g('toshi');
-  const seikatsu = g('seikatsu') * 12, juukyo = g('juukyo') * 12, sonota = g('sonota');
+  const seikatsu = CAT_IDS.reduce((s,k) => s + g(k), 0) * 12;
+  const juukyo = g('juukyo') * 12, sonota = g('sonota');
   const r = g('rimawari') / 100;
   const tori = g('tori') / 100;
   let asset = g('savings');
@@ -1074,7 +1163,12 @@ function update() {
   document.getElementById('v-jigyou').textContent = Math.round(g('jigyou')).toLocaleString() + '万';
   document.getElementById('v-nenkin').textContent = Math.round(g('nenkin')).toLocaleString() + '万';
   document.getElementById('v-toshi').textContent = Math.round(g('toshi')).toLocaleString() + '万';
-  document.getElementById('v-seikatsu').textContent = Math.round(g('seikatsu')).toLocaleString() + '万';
+  // カテゴリ別生活費
+  CAT_IDS.forEach(k => {
+    document.getElementById('v-'+k).textContent = g(k).toFixed(1).replace(/\.0$/,'') + '万';
+  });
+  const catTotal = CAT_IDS.reduce((s,k) => s + g(k), 0);
+  document.getElementById('v-seikatsu-total').textContent = catTotal.toFixed(1).replace(/\.0$/,'') + '万円/月';
   document.getElementById('v-juukyo').textContent = Math.round(g('juukyo')).toLocaleString() + '万';
   document.getElementById('v-sonota').textContent = Math.round(g('sonota')).toLocaleString() + '万';
   document.getElementById('v-savings').textContent = Math.round(g('savings')).toLocaleString() + '万';
