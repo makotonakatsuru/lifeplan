@@ -583,7 +583,7 @@
 <div id="update-toast" onclick="location.reload(true)">🔄 新しいバージョンがあります。タップして更新</div>
 
 <header>
-  <div class="logo">LIFE PLAN</div>
+  <div class="logo" onclick="showTab('summary', document.querySelector('.tab'))" style="cursor:pointer" title="トップへ">LIFE PLAN</div>
   <div class="header-actions">
     <span class="save-status" id="save-status">●  未保存</span>
     <button class="btn primary" onclick="saveAll()">保存</button>
@@ -1229,6 +1229,11 @@ function showTab(id, el) {
   });
   if (id === 'graph') {
     setTimeout(() => renderGraphs(calcPlan()), 50);
+  }
+  // サマリーに戻る時はタブを左端にスクロール
+  if (id === 'summary') {
+    const tabs = document.querySelector('.tabs');
+    if (tabs) tabs.scrollLeft = 0;
   }
 }
 
