@@ -617,22 +617,21 @@
     </div>
 
     <div class="sidebar-section">
-      <div class="section-label">収入（年）</div>
-      <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">給与収入（手取り）</span><span class="slider-val" id="v-salary">400万</span></div>
-        <input type="range" id="salary" min="0" max="800" value="400" step="10" oninput="update()">
+      <div class="section-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>収入（年）</span>
+        <button class="kakeibo-btn" id="income-kakeibo-btn" onclick="importIncomeFromKakeibo()">家計簿から反映</button>
       </div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">事業収入（利益）</span><span class="slider-val" id="v-jigyou">120万</span></div>
-        <input type="range" id="jigyou" min="0" max="500" value="120" step="10" oninput="update()">
+        <div class="slider-header"><span class="slider-label">給与収入（手取り）</span><span class="slider-val" id="v-salary">400万</span></div>
+        <input type="range" id="salary" min="0" max="2000" value="400" step="10" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">その他収入（年）</span><span class="slider-val" id="v-inc_other">140万</span></div>
+        <input type="range" id="inc_other" min="0" max="1000" value="140" step="10" oninput="update()">
       </div>
       <div class="slider-row">
         <div class="slider-header"><span class="slider-label">年金（65歳〜）</span><span class="slider-val" id="v-nenkin">150万</span></div>
         <input type="range" id="nenkin" min="0" max="300" value="150" step="5" oninput="update()">
-      </div>
-      <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">配当・投資収益（年）</span><span class="slider-val" id="v-toshi">20万</span></div>
-        <input type="range" id="toshi" min="0" max="200" value="20" step="5" oninput="update()">
       </div>
     </div>
 
@@ -962,22 +961,18 @@ async function importFromKakeibo() {
     const oldest = months[months.length-1]+'-01';
     const newest = months[0]+'-31';
 
-    // 支出・収入を並行取得
+    // 支出のみ取得
     const baseParams = `user_id=eq.${userId}&date=gte.${oldest}&date=lte.${newest}&order=date.asc`;
-    const [rExp, rInc] = await Promise.all([
-      apiFetch(SU+'/rest/v1/entries?select=amount,date,category&type=eq.exp&'+baseParams, {headers: H()}),
-      apiFetch(SU+'/rest/v1/entries?select=amount,date,category&type=eq.inc&'+baseParams, {headers: H()})
-    ]);
-    if (!rExp.ok || !rInc.ok) throw new Error('データ取得失敗');
+    const rExp = await apiFetch(SU+'/rest/v1/entries?select=amount,date,category&type=eq.exp&'+baseParams, {headers: H()});
+    if (!rExp.ok) throw new Error('データ取得失敗');
     const expRows = await rExp.json();
-    const incRows = await rInc.json();
 
-    if (!expRows.length && !incRows.length) {
-      toast('家計簿にデータがありません'); btn.disabled=false; btn.textContent='家計簿から反映'; return;
+    if (!expRows.length) {
+      toast('家計簿に支出データがありません'); btn.disabled=false; btn.textContent='家計簿から反映'; return;
     }
 
     // ===== 支出：カテゴリ×月ごとに集計 =====
-    const allMonths = [...new Set([...expRows, ...incRows].map(r => r.date.slice(0,7)))].sort();
+    const allMonths = [...new Set(expRows.map(r => r.date.slice(0,7)))].sort();
     const numMonths = allMonths.length || 1;
 
     const catMonthly = {};
@@ -1006,42 +1001,58 @@ async function importFromKakeibo() {
       slider.value = Math.min(Math.max(rounded, parseFloat(slider.min)), parseFloat(slider.max));
     }
 
-    // ===== 収入：カテゴリ別月合計を集計 =====
-    // 収入スライダーマッピング
-    // salary: 給与・ボーナス → 年額（月平均×12）
-    // jigyou: 副業・その他収入 → 年額
-    // toshi:  配当 → 年額
-    const incGroup = { salary: {}, jigyou: {}, toshi: {} };
-    const incCatMap = {
-      '給与': 'salary', 'ボーナス': 'salary',
-      '副業': 'jigyou', 'その他収入': 'jigyou',
-      '配当': 'toshi'
-    };
+    update();
+    toast(`支出を反映しました（直近${numMonths}ヶ月）`);
+  } catch(e) { toast('反映に失敗しました: '+e.message); }
+  btn.disabled = false; btn.textContent = '家計簿から反映';
+}
+
+// ===== 収入を家計簿から反映 =====
+async function importIncomeFromKakeibo() {
+  if (!userId) { toast('ログインが必要です'); return; }
+  const btn = document.querySelector('#income-kakeibo-btn');
+  btn.disabled = true; btn.textContent = '取得中...';
+  try {
+    const now = new Date();
+    const months = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(d.getFullYear()+'-'+(String(d.getMonth()+1).padStart(2,'0')));
+    }
+    const oldest = months[months.length-1]+'-01';
+    const newest = months[0]+'-31';
+    const baseParams = `user_id=eq.${userId}&date=gte.${oldest}&date=lte.${newest}&order=date.asc`;
+
+    const rInc = await apiFetch(SU+'/rest/v1/entries?select=amount,date,category&type=eq.inc&'+baseParams, {headers: H()});
+    if (!rInc.ok) throw new Error('データ取得失敗');
+    const incRows = await rInc.json();
+    if (!incRows.length) { toast('家計簿に収入データがありません'); btn.disabled=false; btn.textContent='家計簿から反映'; return; }
+
+    const allMonths = [...new Set(incRows.map(r => r.date.slice(0,7)))].sort();
+    const numMonths = allMonths.length || 1;
+
+    // salary: 給与・ボーナス、inc_other: それ以外（副業・配当・その他収入など）
+    const incGroup = { salary: {}, inc_other: {} };
+    const salaryCats = new Set(['給与', 'ボーナス']);
     for (const row of incRows) {
       const m = row.date.slice(0,7);
-      const grp = incCatMap[row.category];
-      if (!grp) continue;
+      const grp = salaryCats.has(row.category) ? 'salary' : 'inc_other';
       incGroup[grp][m] = (incGroup[grp][m] || 0) + row.amount;
     }
 
-    function setIncSlider(id, monthlyMap) {
+    function setSlider(id, monthlyMap) {
       const vals = allMonths.map(m => monthlyMap[m] || 0);
       const monthlyAvgYen = vals.reduce((a,b)=>a+b,0) / numMonths;
-      const annualMan = Math.round(monthlyAvgYen * 12 / 10000);
+      const annualMan = Math.round(monthlyAvgYen * 12 / 10000 / 10) * 10; // 10万刻みに丸め
       const slider = document.getElementById(id);
       if (!slider) return;
-      const clamped = Math.min(Math.max(annualMan, parseInt(slider.min)), parseInt(slider.max));
-      slider.value = clamped;
+      slider.value = Math.min(Math.max(annualMan, parseInt(slider.min)), parseInt(slider.max));
     }
-    if (incRows.length) {
-      setIncSlider('salary', incGroup.salary);
-      setIncSlider('jigyou', incGroup.jigyou);
-      setIncSlider('toshi',  incGroup.toshi);
-    }
+    setSlider('salary',    incGroup.salary);
+    setSlider('inc_other', incGroup.inc_other);
 
     update();
-    const expTotal = CAT_IDS.reduce((s,k) => s + g(k), 0);
-    toast(`家計簿から反映しました（収入・支出 / 直近${numMonths}ヶ月）`);
+    toast(`収入を反映しました（直近${numMonths}ヶ月）`);
   } catch(e) { toast('反映に失敗しました: '+e.message); }
   btn.disabled = false; btn.textContent = '家計簿から反映';
 }
@@ -1060,7 +1071,7 @@ async function loadFromDB() {
       const arr = await rSets.json();
       if (arr.length && arr[0].settings) {
         const s = arr[0].settings;
-        ['age','retire','life','salary','jigyou','nenkin','toshi','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS].forEach(k => {
+        ['age','retire','life','salary','inc_other','nenkin','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS].forEach(k => {
           if (s[k] !== undefined) document.getElementById(k).value = s[k];
         });
       }
@@ -1096,7 +1107,7 @@ async function saveAll() {
   if (!userId) { toast('ログインが必要です'); return; }
   try {
     const s = {};
-    ['age','retire','life','salary','jigyou','nenkin','toshi','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS].forEach(k => {
+    ['age','retire','life','salary','inc_other','nenkin','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS].forEach(k => {
       s[k] = parseFloat(document.getElementById(k).value);
     });
 
@@ -1144,7 +1155,7 @@ function g(id) { return parseFloat(document.getElementById(id).value); }
 
 function calcPlan() {
   const age = Math.round(g('age')), retire = Math.round(g('retire')), life = Math.round(g('life'));
-  const salary = g('salary'), jigyou = g('jigyou'), nenkin = g('nenkin'), toshi = g('toshi');
+  const salary = g('salary'), inc_other = g('inc_other'), nenkin = g('nenkin');
   const seikatsu = CAT_IDS.reduce((s,k) => s + g(k), 0) * 12;
   const juukyo = g('juukyo') * 12, sonota = g('sonota');
   const r = g('rimawari') / 100;
@@ -1154,8 +1165,8 @@ function calcPlan() {
 
   for (let a = age; a <= life; a++) {
     const yr = currentYear + (a - age);
-    let income = toshi;
-    if (a < retire) income += salary + jigyou;
+    let income = inc_other;
+    if (a < retire) income += salary;
     if (a >= 65) income += nenkin;
     // 退職後：取り崩し額を収入に加算（資産から引き出す）
     const toriAmount = (a >= retire && tori > 0) ? Math.max(asset, 0) * tori : 0;
@@ -1185,9 +1196,8 @@ function update() {
   document.getElementById('v-retire').textContent = Math.round(g('retire')) + '歳';
   document.getElementById('v-life').textContent = Math.round(g('life')) + '歳';
   document.getElementById('v-salary').textContent = Math.round(g('salary')).toLocaleString() + '万';
-  document.getElementById('v-jigyou').textContent = Math.round(g('jigyou')).toLocaleString() + '万';
+  document.getElementById('v-inc_other').textContent = Math.round(g('inc_other')).toLocaleString() + '万';
   document.getElementById('v-nenkin').textContent = Math.round(g('nenkin')).toLocaleString() + '万';
-  document.getElementById('v-toshi').textContent = Math.round(g('toshi')).toLocaleString() + '万';
   // カテゴリ別生活費
   CAT_IDS.forEach(k => {
     document.getElementById('v-'+k).textContent = g(k).toFixed(1) + '万';
