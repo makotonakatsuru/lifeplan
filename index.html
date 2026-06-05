@@ -1106,7 +1106,7 @@ async function loadActualData() {
   try {
     const now = new Date();
     const months = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 1; i <= 3; i++) {  // 当月除外・先月から3ヶ月
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       months.push(d.getFullYear()+'-'+(String(d.getMonth()+1).padStart(2,'0')));
     }
@@ -1253,7 +1253,7 @@ async function importFromKakeibo() {
     // 直近6ヶ月の範囲を生成
     const now = new Date();
     const months = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 1; i <= 6; i++) {  // 当月除外
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       months.push(d.getFullYear()+'-'+(String(d.getMonth()+1).padStart(2,'0')));
     }
@@ -1316,7 +1316,7 @@ async function importIncomeFromKakeibo() {
   try {
     const now = new Date();
     const months = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 1; i <= 6; i++) {  // 当月除外
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       months.push(d.getFullYear()+'-'+(String(d.getMonth()+1).padStart(2,'0')));
     }
