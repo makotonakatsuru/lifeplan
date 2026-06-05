@@ -699,7 +699,15 @@
       <div class="section-label">住居・その他支出</div>
       <div class="slider-row">
         <div class="slider-header"><span class="slider-label">住居費（月）</span><span class="slider-val" id="v-juukyo">2万</span></div>
-        <input type="range" id="juukyo" min="0" max="20" value="2" step="1" oninput="update()">
+        <input type="range" id="juukyo" min="0" max="30" value="2" step="1" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">ローンボーナス払い（年）</span><span class="slider-val" id="v-loan_bonus">0万</span></div>
+        <input type="range" id="loan_bonus" min="0" max="100" value="0" step="1" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">管理費・修繕積立（月）</span><span class="slider-val" id="v-kanri">0万</span></div>
+        <input type="range" id="kanri" min="0" max="5" value="0" step="0.1" oninput="update()">
       </div>
       <div class="slider-row">
         <div class="slider-header"><span class="slider-label">その他支出（年）</span><span class="slider-val" id="v-sonota">60万</span></div>
@@ -1112,7 +1120,7 @@ async function loadFromDB() {
       const arr = await rSets.json();
       if (arr.length && arr[0].settings) {
         const s = arr[0].settings;
-        ['age','retire','life','salary','inc_other','child_benefit','child_age','nenkin','retire_other','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
+        ['age','retire','life','salary','inc_other','child_benefit','child_age','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
           if (s[k] !== undefined) document.getElementById(k).value = s[k];
         });
       }
@@ -1148,7 +1156,7 @@ async function saveAll() {
   if (!userId) { toast('ログインが必要です'); return; }
   try {
     const s = {};
-    ['age','retire','life','salary','inc_other','child_benefit','child_age','nenkin','retire_other','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
+    ['age','retire','life','salary','inc_other','child_benefit','child_age','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
       s[k] = parseFloat(document.getElementById(k).value);
     });
 
@@ -1201,7 +1209,7 @@ function calcPlan() {
   const child_age = Math.round(g('child_age'));
   const child_end_year = currentYear + (18 - child_age); // 子が18歳になる年
   const seikatsu = CAT_IDS.reduce((s,k) => s + g(k), 0) * 12;
-  const juukyo = g('juukyo') * 12, sonota = g('sonota');
+  const juukyo = g('juukyo') * 12 + g('loan_bonus') + g('kanri') * 12, sonota = g('sonota');
   const taxTotal = TAX_IDS.reduce((s,k) => s + g(k), 0);
   const r = g('rimawari') / 100;
   const tori = g('tori') / 100;
@@ -1270,6 +1278,8 @@ function update() {
   const catTotal = CAT_IDS.reduce((s,k) => s + g(k), 0);
   document.getElementById('v-seikatsu-total').textContent = catTotal.toFixed(1) + '万円/月';
   document.getElementById('v-juukyo').textContent = Math.round(g('juukyo')).toLocaleString() + '万';
+  document.getElementById('v-loan_bonus').textContent = Math.round(g('loan_bonus')).toLocaleString() + '万';
+  document.getElementById('v-kanri').textContent = g('kanri').toFixed(1) + '万';
   document.getElementById('v-sonota').textContent = Math.round(g('sonota')).toLocaleString() + '万';
   TAX_IDS.forEach(k => {
     document.getElementById('v-'+k).textContent = Math.round(g(k)).toLocaleString() + '万';
