@@ -1736,7 +1736,6 @@ function renderEvents() {
 }
 
 function addEducationEvents() {
-  const age = Math.round(g('age'));
   let added = 0;
   [1,2,3].forEach(i => {
     const cb = g('child_benefit_'+i);
@@ -1745,16 +1744,21 @@ function addEducationEvents() {
     const slot = document.getElementById('child_slot_'+i);
     if (slot && slot.style.display === 'none') return; // 非表示
 
-    const highYr  = currentYear + (15 - ca); // 高校入学（15歳）
-    const uniYr   = currentYear + (18 - ca); // 大学入学（18歳）
-
-    const toAdd = [
-      { name: `子供${i} 高校入学`, year: highYr, amount: -50 },
-      { name: `子供${i} 大学入学`, year: uniYr,  amount: -100 },
+    // 高校：15〜17歳（3年間）年50万
+    // 大学：18〜21歳（4年間）年100万
+    const schoolYears = [
+      { label: '高校1年', childAge: 15, amount: -50 },
+      { label: '高校2年', childAge: 16, amount: -50 },
+      { label: '高校3年', childAge: 17, amount: -50 },
+      { label: '大学1年', childAge: 18, amount: -100 },
+      { label: '大学2年', childAge: 19, amount: -100 },
+      { label: '大学3年', childAge: 20, amount: -100 },
+      { label: '大学4年', childAge: 21, amount: -100 },
     ];
-    toAdd.forEach(ev => {
-      if (ev.year >= currentYear) {
-        events.push({ name: ev.name, year: ev.year, amount: ev.amount, on: true });
+    schoolYears.forEach(({ label, childAge, amount }) => {
+      const yr = currentYear + (childAge - ca);
+      if (yr >= currentYear) {
+        events.push({ name: `子供${i} ${label}`, year: yr, amount, on: true });
         added++;
       }
     });
@@ -1762,7 +1766,7 @@ function addEducationEvents() {
   if (added === 0) { toast('子供の設定がないか、すでに対象年齢を過ぎています'); return; }
   renderEvents();
   update();
-  toast(`教育費イベントを${added}件追加しました`);
+  toast(`教育費イベントを${added}件追加しました（高校50万/年・大学100万/年）`);
 }
 
 function addEvent() {
