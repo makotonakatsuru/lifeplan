@@ -846,7 +846,7 @@
         <div class="metric-grid" id="metrics"></div>
         <div id="compare-section" style="display:none">
           <div class="compare-card">
-            <div class="compare-title">📊 実績 vs 計画（直近3ヶ月平均）</div>
+            <div class="compare-title" id="compare-title">📊 実績 vs 計画</div>
             <div id="compare-income-row" class="compare-row">
               <span class="compare-label">収入（月）</span>
               <span class="compare-vals">
@@ -1163,6 +1163,15 @@ function renderActualBadges() {
 function renderCompareCard() {
   if (!actualData.loaded) return;
   document.getElementById('compare-section').style.display = 'block';
+
+  // タイトルに対象期間を表示
+  const now = new Date();
+  const n = actualData.months || 3;
+  const endM = `${now.getFullYear()}年${now.getMonth()+1}月`;
+  const startD = new Date(now.getFullYear(), now.getMonth() - (n-1), 1);
+  const startM = `${startD.getFullYear()}年${startD.getMonth()+1}月`;
+  const periodStr = n === 1 ? endM : `${startM}〜${endM}（${n}ヶ月平均）`;
+  document.getElementById('compare-title').textContent = `📊 実績 vs 計画（${periodStr}）`;
 
   // 収入
   const planInc = Math.round(g('salary') / 12 * 10) / 10;
