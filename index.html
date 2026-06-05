@@ -866,6 +866,15 @@
                 <span class="compare-diff" id="cd-exp-total"></span>
               </span>
             </div>
+            <div class="compare-row" style="padding-top:10px;border-top:2px solid var(--border2);margin-top:4px">
+              <span class="compare-label" style="font-weight:700;color:var(--text);font-size:13px">💰 収支差額（月）</span>
+              <span class="compare-vals">
+                <span class="compare-plan" id="cp-balance">—</span>
+                <span>→</span>
+                <span class="compare-actual" id="ca-balance" style="font-size:14px">—</span>
+                <span class="compare-diff" id="cd-balance"></span>
+              </span>
+            </div>
           </div>
         </div>
         <div class="chart-wrap">
@@ -1201,6 +1210,18 @@ function renderCompareCard() {
   const cdT = document.getElementById('cd-exp-total');
   cdT.textContent = (diffTotal>=0?'+':'')+diffTotal.toFixed(1)+'万';
   cdT.className = 'compare-diff '+(diffTotal > 0.05 ? 'over' : 'under');
+
+  // 収支差額：（実績収入 − 実績支出）−（計画収入 − 計画支出）
+  const planBalance = planInc - planExpTotal;
+  const actBalance  = actInc  - actExpTotal;
+  const diffBalance = Math.round((actBalance - planBalance) * 10) / 10;
+  document.getElementById('cp-balance').textContent = planBalance.toFixed(1)+'万';
+  const caB = document.getElementById('ca-balance');
+  caB.textContent = actBalance.toFixed(1)+'万';
+  caB.className = 'compare-actual '+(actBalance >= planBalance ? 'under' : 'over');
+  const cdB = document.getElementById('cd-balance');
+  cdB.textContent = (diffBalance>=0?'+':'')+diffBalance.toFixed(1)+'万';
+  cdB.className = 'compare-diff '+(diffBalance >= 0 ? 'under' : 'over');
 }
 
 // ===== 家計簿から反映 =====
