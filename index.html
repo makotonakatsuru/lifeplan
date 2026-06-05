@@ -554,6 +554,25 @@
 /* 家計簿反映ボタン */
 .kakeibo-btn{font-size:11px;padding:3px 8px;border:1px solid var(--accent);border-radius:6px;background:none;color:var(--accent);cursor:pointer;margin-left:6px;white-space:nowrap;font-family:inherit}
 .kakeibo-btn:hover{background:var(--accent);color:#fff}
+/* 実績比較 */
+.actual-badge{font-size:10px;font-family:'DM Mono',monospace;padding:1px 5px;border-radius:4px;margin-left:5px;font-weight:600}
+.actual-badge.over{background:rgba(248,113,113,0.18);color:var(--red)}
+.actual-badge.under{background:rgba(74,222,128,0.15);color:var(--accent)}
+.actual-badge.equal{background:rgba(255,255,255,0.07);color:var(--text3)}
+/* 比較カード */
+.compare-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px}
+.compare-title{font-size:11px;color:var(--text3);letter-spacing:.08em;margin-bottom:12px;text-transform:uppercase}
+.compare-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.compare-row:last-child{border-bottom:none}
+.compare-label{color:var(--text2);font-size:12px}
+.compare-vals{display:flex;gap:12px;align-items:center;font-family:'DM Mono',monospace;font-size:12px}
+.compare-plan{color:var(--text3)}
+.compare-actual{font-weight:600}
+.compare-actual.over{color:var(--red)}
+.compare-actual.under{color:var(--accent)}
+.compare-diff{font-size:11px;padding:1px 6px;border-radius:4px}
+.compare-diff.over{background:rgba(248,113,113,0.15);color:var(--red)}
+.compare-diff.under{background:rgba(74,222,128,0.12);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -708,35 +727,35 @@
         <span id="v-seikatsu-total" style="color:var(--accent);font-family:'DM Mono',monospace;font-weight:500">17万円/月</span>
       </div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">食費（月）</span><span class="slider-val" id="v-cat_food">6万</span></div>
+        <div class="slider-header"><span class="slider-label">食費（月）</span><span class="slider-val" id="v-cat_food">6万</span><span class="actual-badge" id="ab-cat_food"></span></div>
         <input type="range" id="cat_food" min="0" max="20" value="6" step="0.1" oninput="update()">
       </div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">外食（月）</span><span class="slider-val" id="v-cat_eat_out">2万</span></div>
+        <div class="slider-header"><span class="slider-label">外食（月）</span><span class="slider-val" id="v-cat_eat_out">2万</span><span class="actual-badge" id="ab-cat_eat_out"></span></div>
         <input type="range" id="cat_eat_out" min="0" max="10" value="2" step="0.1" oninput="update()">
       </div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">交通費（月）</span><span class="slider-val" id="v-cat_transport">2万</span></div>
+        <div class="slider-header"><span class="slider-label">交通費（月）</span><span class="slider-val" id="v-cat_transport">2万</span><span class="actual-badge" id="ab-cat_transport"></span></div>
         <input type="range" id="cat_transport" min="0" max="10" value="2" step="0.1" oninput="update()">
       </div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">通信費（月）</span><span class="slider-val" id="v-cat_comms">1万</span></div>
+        <div class="slider-header"><span class="slider-label">通信費（月）</span><span class="slider-val" id="v-cat_comms">1万</span><span class="actual-badge" id="ab-cat_comms"></span></div>
         <input type="range" id="cat_comms" min="0" max="5" value="1" step="0.1" oninput="update()">
       </div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">光熱費（月）</span><span class="slider-val" id="v-cat_utility">2万</span></div>
+        <div class="slider-header"><span class="slider-label">光熱費（月）</span><span class="slider-val" id="v-cat_utility">2万</span><span class="actual-badge" id="ab-cat_utility"></span></div>
         <input type="range" id="cat_utility" min="0" max="10" value="2" step="0.1" oninput="update()">
       </div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">医療費（月）</span><span class="slider-val" id="v-cat_medical">1万</span></div>
+        <div class="slider-header"><span class="slider-label">医療費（月）</span><span class="slider-val" id="v-cat_medical">1万</span><span class="actual-badge" id="ab-cat_medical"></span></div>
         <input type="range" id="cat_medical" min="0" max="5" value="1" step="0.1" oninput="update()">
       </div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">娯楽（月）</span><span class="slider-val" id="v-cat_leisure">1万</span></div>
+        <div class="slider-header"><span class="slider-label">娯楽（月）</span><span class="slider-val" id="v-cat_leisure">1万</span><span class="actual-badge" id="ab-cat_leisure"></span></div>
         <input type="range" id="cat_leisure" min="0" max="10" value="1" step="0.1" oninput="update()">
       </div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">その他（月）</span><span class="slider-val" id="v-cat_other">2万</span></div>
+        <div class="slider-header"><span class="slider-label">その他（月）</span><span class="slider-val" id="v-cat_other">2万</span><span class="actual-badge" id="ab-cat_other"></span></div>
         <input type="range" id="cat_other" min="0" max="10" value="2" step="0.1" oninput="update()">
       </div>
     </div>
@@ -825,6 +844,30 @@
       <!-- サマリー -->
       <div id="panel-summary">
         <div class="metric-grid" id="metrics"></div>
+        <div id="compare-section" style="display:none">
+          <div class="compare-card">
+            <div class="compare-title">📊 実績 vs 計画（直近3ヶ月平均）</div>
+            <div id="compare-income-row" class="compare-row">
+              <span class="compare-label">収入（月）</span>
+              <span class="compare-vals">
+                <span class="compare-plan" id="cp-income">—</span>
+                <span>→</span>
+                <span class="compare-actual" id="ca-income">—</span>
+                <span class="compare-diff" id="cd-income"></span>
+              </span>
+            </div>
+            <div id="compare-exp-rows"></div>
+            <div class="compare-row" style="margin-top:4px;padding-top:8px;border-top:1px solid var(--border2)">
+              <span class="compare-label" style="font-weight:600;color:var(--text)">支出合計（月）</span>
+              <span class="compare-vals">
+                <span class="compare-plan" id="cp-exp-total">—</span>
+                <span>→</span>
+                <span class="compare-actual" id="ca-exp-total">—</span>
+                <span class="compare-diff" id="cd-exp-total"></span>
+              </span>
+            </div>
+          </div>
+        </div>
         <div class="chart-wrap">
           <div class="chart-title">資産推移プレビュー</div>
           <div style="position:relative;height:280px">
@@ -1043,6 +1086,121 @@ function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   loadFromDB();
   startVersionPolling();
+  loadActualData();
+}
+
+// ===== 実績データ取得・比較表示 =====
+let actualData = {}; // { cat_food: 6.2, cat_eat_out: 1.8, ... , income: 38.0 }
+
+async function loadActualData() {
+  if (!userId) return;
+  try {
+    const now = new Date();
+    const months = [];
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(d.getFullYear()+'-'+(String(d.getMonth()+1).padStart(2,'0')));
+    }
+    const oldest = months[months.length-1]+'-01';
+    const newest = months[0]+'-31';
+    const base = `user_id=eq.${userId}&date=gte.${oldest}&date=lte.${newest}`;
+
+    const [rExp, rInc] = await Promise.all([
+      apiFetch(SU+'/rest/v1/entries?select=amount,date,category&type=eq.exp&'+base, {headers: H()}),
+      apiFetch(SU+'/rest/v1/entries?select=amount,date,category&type=eq.inc&'+base, {headers: H()})
+    ]);
+    if (!rExp.ok || !rInc.ok) return;
+    const expRows = await rExp.json();
+    const incRows = await rInc.json();
+
+    const allMonths = [...new Set([...expRows,...incRows].map(r=>r.date.slice(0,7)))].sort();
+    const n = allMonths.length || 1;
+
+    // 支出カテゴリ別月平均（万円）
+    const catSum = {};
+    CAT_IDS.forEach(id => { catSum[id] = 0; });
+    for (const row of expRows) {
+      const id = CAT_MAP[row.category] || 'cat_other';
+      catSum[id] = (catSum[id]||0) + row.amount;
+    }
+    CAT_IDS.forEach(id => { actualData[id] = catSum[id] / n / 10000; });
+
+    // 収入月平均（万円）
+    const incTotal = incRows.reduce((s,r) => s+r.amount, 0);
+    actualData.income = incTotal / n / 10000;
+    actualData.loaded = true;
+    actualData.months = n;
+
+    renderActualBadges();
+    renderCompareCard();
+  } catch(e) { console.error('実績取得失敗', e); }
+}
+
+function renderActualBadges() {
+  if (!actualData.loaded) return;
+  CAT_IDS.forEach(id => {
+    const el = document.getElementById('ab-'+id);
+    if (!el) return;
+    const plan = g(id);
+    const actual = actualData[id] || 0;
+    if (actual === 0) { el.textContent=''; el.className='actual-badge'; return; }
+    const diff = actual - plan;
+    const sign = diff > 0 ? '+' : '';
+    el.textContent = `実績${actual.toFixed(1)}万 ${sign}${diff.toFixed(1)}`;
+    el.className = 'actual-badge ' + (diff > 0.05 ? 'over' : diff < -0.05 ? 'under' : 'equal');
+  });
+}
+
+function renderCompareCard() {
+  if (!actualData.loaded) return;
+  document.getElementById('compare-section').style.display = 'block';
+
+  // 収入
+  const planInc = Math.round(g('salary') / 12 * 10) / 10;
+  const actInc = Math.round(actualData.income * 10) / 10;
+  const diffInc = Math.round((actInc - planInc) * 10) / 10;
+  document.getElementById('cp-income').textContent = planInc.toFixed(1)+'万';
+  const caInc = document.getElementById('ca-income');
+  caInc.textContent = actInc.toFixed(1)+'万';
+  caInc.className = 'compare-actual '+(diffInc >= 0 ? 'under' : 'over');
+  const cdInc = document.getElementById('cd-income');
+  cdInc.textContent = (diffInc >= 0 ? '+' : '')+diffInc.toFixed(1)+'万';
+  cdInc.className = 'compare-diff '+(diffInc >= 0 ? 'under' : 'over');
+
+  // 支出カテゴリ別
+  const catLabels = {
+    cat_food:'食費', cat_eat_out:'外食', cat_transport:'交通費',
+    cat_comms:'通信費', cat_utility:'光熱費', cat_medical:'医療費',
+    cat_leisure:'娯楽', cat_other:'その他'
+  };
+  let planExpTotal = 0, actExpTotal = 0;
+  const rows = CAT_IDS.map(id => {
+    const plan = g(id), actual = actualData[id]||0;
+    const diff = actual - plan;
+    planExpTotal += plan; actExpTotal += actual;
+    const cls = diff > 0.05 ? 'over' : diff < -0.05 ? 'under' : '';
+    const sign = diff >= 0 ? '+' : '';
+    return `<div class="compare-row">
+      <span class="compare-label">${catLabels[id]}</span>
+      <span class="compare-vals">
+        <span class="compare-plan">${plan.toFixed(1)}万</span>
+        <span>→</span>
+        <span class="compare-actual ${cls}">${actual.toFixed(1)}万</span>
+        <span class="compare-diff ${cls}">${actual>0?sign+diff.toFixed(1)+'万':''}</span>
+      </span>
+    </div>`;
+  }).join('');
+  document.getElementById('compare-exp-rows').innerHTML = rows;
+
+  // 合計
+  const diffTotal = actExpTotal - planExpTotal;
+  document.getElementById('cp-exp-total').textContent = planExpTotal.toFixed(1)+'万';
+  const caT = document.getElementById('ca-exp-total');
+  caT.textContent = actExpTotal.toFixed(1)+'万';
+  caT.className = 'compare-actual '+(diffTotal > 0.05 ? 'over' : 'under');
+  const cdT = document.getElementById('cd-exp-total');
+  cdT.textContent = (diffTotal>=0?'+':'')+diffTotal.toFixed(1)+'万';
+  cdT.className = 'compare-diff '+(diffTotal > 0.05 ? 'over' : 'under');
 }
 
 // ===== 家計簿から反映 =====
@@ -1349,6 +1507,8 @@ function update() {
   document.getElementById('v-rimawari').textContent = g('rimawari').toFixed(1) + '%';
   document.getElementById('v-tori').textContent = g('tori').toFixed(1) + '%';
 
+  renderActualBadges();
+  renderCompareCard();
   const plan = calcPlan();
   renderMetrics(plan);
   renderNenpyo(plan);
