@@ -1400,7 +1400,7 @@ async function loadFromDB() {
     if (rEvs.ok) {
       const arr = await rEvs.json();
       if (arr.length > 0) {
-        events = arr.map(e => ({ id: e.id, name: e.name, year: e.year, amount: e.amount, on: e.enabled }));
+        events = arr.map(e => ({ id: e.id, name: e.name, year: e.year, amount: e.amount, on: e.enabled !== false })); // nullの場合もtrueとして扱う
       } else {
         events = defaultEvents();
       }
@@ -1519,9 +1519,10 @@ function calcPlan() {
     let expense = seikatsu + juukyo + sonota + taxTotal + chochiku_this; // 積立も支出として収支に反映
     let evStr = '';
     for (const ev of events) {
-      if (ev.on && ev.year === yr) {
+      if (ev.on !== false && ev.year === yr) {
         if (ev.amount < 0) expense += Math.abs(ev.amount); else income += ev.amount;
-        evStr += (evStr ? ' / ' : '') + ev.name;
+        const sign = ev.amount >= 0 ? '+' : '';
+        evStr += (evStr ? ' / ' : '') + `${ev.name}(${sign}${ev.amount}万)`;
       }
     }
     const balance = income - expense;
