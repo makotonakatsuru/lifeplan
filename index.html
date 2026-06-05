@@ -554,6 +554,12 @@
 /* 家計簿反映ボタン */
 .kakeibo-btn{font-size:11px;padding:3px 8px;border:1px solid var(--accent);border-radius:6px;background:none;color:var(--accent);cursor:pointer;margin-left:6px;white-space:nowrap;font-family:inherit}
 .kakeibo-btn:hover{background:var(--accent);color:#fff}
+/* セクション折りたたみ */
+.section-toggle{cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;width:100%}
+.section-toggle .toggle-arrow{font-size:9px;color:var(--text3);transition:transform 0.2s;margin-left:4px}
+.section-toggle.collapsed .toggle-arrow{transform:rotate(-90deg)}
+.section-body{overflow:hidden;transition:max-height 0.25s ease}
+.section-body.collapsed{max-height:0 !important}
 /* 実績比較 */
 .actual-badge{font-size:10px;font-family:'DM Mono',monospace;padding:1px 5px;border-radius:4px;margin-left:5px;font-weight:600}
 .actual-badge.over{background:rgba(248,113,113,0.18);color:var(--red)}
@@ -844,6 +850,7 @@
       <!-- サマリー -->
       <div id="panel-summary">
         <div class="metric-grid" id="metrics"></div>
+        <div id="rougo-check" style="font-size:12px;padding:10px 14px;border-radius:8px;border:1px solid;margin-bottom:16px;line-height:1.6"></div>
         <div id="compare-section" style="display:none">
           <div class="compare-card">
             <div class="compare-title" id="compare-title">📊 実績 vs 計画</div>
@@ -894,6 +901,7 @@
       <div id="panel-events" style="display:none">
         <div class="event-list" id="event-list"></div>
         <button class="add-btn" onclick="addEvent()">＋ イベント追加</button>
+        <button class="add-btn" onclick="addEducationEvents()" style="margin-top:6px;border-color:var(--blue);color:var(--blue)">🎓 教育費を自動追加</button>
         <p style="font-size:11px;color:var(--text3);margin-top:12px">金額：マイナスで支出、プラスで収入。例）-200 = 200万円の支出</p>
       </div>
 
@@ -904,7 +912,7 @@
             <thead>
               <tr>
                 <th>年</th><th>年齢</th><th>収入</th><th>支出</th>
-                <th>収支</th><th>資産残高</th><th>イベント</th>
+                <th>収支</th><th>積立</th><th>取崩</th><th>資産残高</th><th>イベント</th>
               </tr>
             </thead>
             <tbody id="nenpyo-body"></tbody>
@@ -1304,6 +1312,7 @@ async function importFromKakeibo() {
     const expPeriod = periodLabel(allMonths);
     document.getElementById('exp-reflected-period').textContent = expPeriod;
     toast(`支出を反映しました（${expPeriod}）`);
+    saveAll();
   } catch(e) { toast('反映に失敗しました: '+e.message); }
   btn.disabled = false; btn.textContent = '家計簿から反映';
 }
@@ -1356,6 +1365,7 @@ async function importIncomeFromKakeibo() {
     const incPeriod = periodLabel(allMonths);
     document.getElementById('income-reflected-period').textContent = incPeriod;
     toast(`収入を反映しました（${incPeriod}）`);
+    saveAll();
   } catch(e) { toast('反映に失敗しました: '+e.message); }
   btn.disabled = false; btn.textContent = '家計簿から反映';
 }
@@ -1377,6 +1387,11 @@ async function loadFromDB() {
         ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','chochiku_end','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
           if (s[k] !== undefined) document.getElementById(k).value = s[k];
         });
+        // 子供人数を復元
+        if (s.childCount) {
+          childCount = 1;
+          for (let i = 2; i <= Math.min(s.childCount, 3); i++) addChild();
+        }
       }
     }
     const rEvs = await apiFetch(SU+'/rest/v1/lifeplan_events?select=id,name,year,amount,enabled&user_key=eq.'+userId+'&order=year.asc', {headers: H()});
@@ -1397,6 +1412,7 @@ async function loadFromDB() {
   update();
   renderEvents();
   document.getElementById('loading').style.display = 'none';
+  initSections();
 }
 
 function defaultEvents() {
@@ -1409,7 +1425,7 @@ function defaultEvents() {
 async function saveAll() {
   if (!userId) { toast('ログインが必要です'); return; }
   try {
-    const s = {};
+    const s = { childCount };
     ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','chochiku_end','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
       s[k] = parseFloat(document.getElementById(k).value);
     });
@@ -1507,7 +1523,7 @@ function calcPlan() {
     // 資産計算：取り崩し後の残高に利回りを適用し、給与・年金・生活費の差引を加算
     // (asset - toriAmount) * (1+r) + (income - toriAmount - expense)
     asset = (asset - toriAmount) * (1 + r) + (balance - toriAmount) + chochiku_this;
-    plan.push({ yr, age: a, income: Math.round(income), expense: Math.round(expense), balance: Math.round(balance), asset: Math.round(asset), ev: evStr, isRetire: a === retire, isPension: a === 65 });
+    plan.push({ yr, age: a, income: Math.round(income), expense: Math.round(expense), balance: Math.round(balance), asset: Math.round(asset), ev: evStr, isRetire: a === retire, isPension: a === 65, chochiku: Math.round(chochiku_this), tori: Math.round(toriAmount) });
   }
   return plan;
 }
@@ -1593,6 +1609,24 @@ function renderMetrics(plan) {
       <div class="metric-sub">${deficit === 0 ? '全年黒字' : '収支マイナスの年'}</div>
     </div>
   `;
+
+  // 老後2000万問題チェック
+  const target = 2000;
+  const el = document.getElementById('rougo-check');
+  if (el) {
+    if (retireAsset >= target) {
+      el.innerHTML = `✅ 退職時資産 <b>${Math.round(retireAsset).toLocaleString()}万円</b>（老後2,000万円クリア）`;
+      el.style.background = 'rgba(74,222,128,0.08)';
+      el.style.color = 'var(--accent)';
+      el.style.borderColor = 'rgba(74,222,128,0.3)';
+    } else {
+      const shortage = target - Math.round(retireAsset);
+      el.innerHTML = `⚠️ 退職時資産 <b>${Math.round(retireAsset).toLocaleString()}万円</b>（老後2,000万円まで <b>${shortage.toLocaleString()}万円</b> 不足）`;
+      el.style.background = 'rgba(248,113,113,0.08)';
+      el.style.color = 'var(--red)';
+      el.style.borderColor = 'rgba(248,113,113,0.3)';
+    }
+  }
 }
 
 function renderNenpyo(plan) {
@@ -1605,6 +1639,8 @@ function renderNenpyo(plan) {
       <td class="green">${r.income.toLocaleString()}</td>
       <td class="red">${r.expense.toLocaleString()}</td>
       <td class="${r.balance >= 0 ? 'green' : 'red'}">${r.balance >= 0 ? '+' : ''}${r.balance.toLocaleString()}</td>
+      <td style="color:var(--blue)">${r.chochiku > 0 ? '+'+r.chochiku.toLocaleString() : '—'}</td>
+      <td style="color:var(--purple)">${r.tori > 0 ? r.tori.toLocaleString() : '—'}</td>
       <td class="${r.asset >= 0 ? 'green' : 'red'}" style="font-weight:500">${r.asset.toLocaleString()}</td>
       <td class="ev-cell">${r.ev}</td>
     </tr>
@@ -1699,6 +1735,36 @@ function renderEvents() {
   });
 }
 
+function addEducationEvents() {
+  const age = Math.round(g('age'));
+  let added = 0;
+  [1,2,3].forEach(i => {
+    const cb = g('child_benefit_'+i);
+    const ca = Math.round(g('child_age_'+i));
+    if (cb === 0 && ca === 0) return; // 未設定
+    const slot = document.getElementById('child_slot_'+i);
+    if (slot && slot.style.display === 'none') return; // 非表示
+
+    const highYr  = currentYear + (15 - ca); // 高校入学（15歳）
+    const uniYr   = currentYear + (18 - ca); // 大学入学（18歳）
+
+    const toAdd = [
+      { name: `子供${i} 高校入学`, year: highYr, amount: -50 },
+      { name: `子供${i} 大学入学`, year: uniYr,  amount: -100 },
+    ];
+    toAdd.forEach(ev => {
+      if (ev.year >= currentYear) {
+        events.push({ name: ev.name, year: ev.year, amount: ev.amount, on: true });
+        added++;
+      }
+    });
+  });
+  if (added === 0) { toast('子供の設定がないか、すでに対象年齢を過ぎています'); return; }
+  renderEvents();
+  update();
+  toast(`教育費イベントを${added}件追加しました`);
+}
+
 function addEvent() {
   events.push({ name: '新イベント', year: currentYear + 5, amount: -100, on: true });
   renderEvents();
@@ -1771,6 +1837,49 @@ function removeChild(n) {
   }
   document.getElementById('child_add_btn').style.display = '';
   update();
+}
+
+// ===== セクション折りたたみ =====
+function toggleSection(el) {
+  const body = el.nextElementSibling;
+  const isCollapsed = el.classList.toggle('collapsed');
+  if (isCollapsed) {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    requestAnimationFrame(() => body.classList.add('collapsed'));
+  } else {
+    body.classList.remove('collapsed');
+    body.style.maxHeight = body.scrollHeight + 'px';
+    setTimeout(() => body.style.maxHeight = '', 260);
+  }
+}
+function initSections() {
+  // sidebar-section内のsection-labelをトグル化
+  document.querySelectorAll('.sidebar-inner .sidebar-section').forEach(sec => {
+    const label = sec.querySelector('.section-label');
+    if (!label || label.dataset.toggleInit) return;
+    label.dataset.toggleInit = '1';
+    label.classList.add('section-toggle');
+    // ▼ アイコン追加
+    const arrow = document.createElement('span');
+    arrow.className = 'toggle-arrow';
+    arrow.textContent = '▼';
+    if (label.style.display === 'flex' || getComputedStyle(label).display === 'flex') {
+      label.appendChild(arrow);
+    } else {
+      label.style.display = 'flex';
+      label.style.justifyContent = 'space-between';
+      label.style.alignItems = 'center';
+      label.appendChild(arrow);
+    }
+    // 中身をsection-bodyでラップ
+    const body = document.createElement('div');
+    body.className = 'section-body';
+    const children = [...sec.children].filter(c => c !== label);
+    children.forEach(c => body.appendChild(c));
+    sec.appendChild(body);
+    body.style.maxHeight = body.scrollHeight + 'px';
+    label.addEventListener('click', () => toggleSection(label));
+  });
 }
 
 function toggleSidebar() {
