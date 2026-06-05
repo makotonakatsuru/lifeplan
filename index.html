@@ -708,6 +708,29 @@
     </div>
 
     <div class="sidebar-section">
+      <div class="section-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>税金・保険（年）</span>
+        <span id="v-tax_total" style="font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;font-weight:500">21万</span>
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">固定資産税</span><span class="slider-val" id="v-tax_property">10万</span></div>
+        <input type="range" id="tax_property" min="0" max="100" value="10" step="1" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">火災保険</span><span class="slider-val" id="v-tax_fire">3万</span></div>
+        <input type="range" id="tax_fire" min="0" max="30" value="3" step="1" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">自動車税</span><span class="slider-val" id="v-tax_car">3万</span></div>
+        <input type="range" id="tax_car" min="0" max="30" value="3" step="1" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">その他保険</span><span class="slider-val" id="v-tax_ins">5万</span></div>
+        <input type="range" id="tax_ins" min="0" max="50" value="5" step="1" oninput="update()">
+      </div>
+    </div>
+
+    <div class="sidebar-section">
       <div class="section-label">資産・運用</div>
       <div class="slider-row">
         <div class="slider-header"><span class="slider-label">現在の資産</span><span class="slider-val" id="v-savings">1,000万</span></div>
@@ -808,6 +831,7 @@ const APP_VERSION = '1.4.0';
 
 // カテゴリ別生活費スライダーID一覧
 const CAT_IDS = ['cat_food','cat_eat_out','cat_transport','cat_comms','cat_utility','cat_medical','cat_leisure','cat_other'];
+const TAX_IDS = ['tax_property','tax_fire','tax_car','tax_ins'];
 
 // 家計簿カテゴリ名 → スライダーIDのマッピング
 const CAT_MAP = {
@@ -1088,7 +1112,7 @@ async function loadFromDB() {
       const arr = await rSets.json();
       if (arr.length && arr[0].settings) {
         const s = arr[0].settings;
-        ['age','retire','life','salary','inc_other','child_benefit','child_age','nenkin','retire_other','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS].forEach(k => {
+        ['age','retire','life','salary','inc_other','child_benefit','child_age','nenkin','retire_other','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
           if (s[k] !== undefined) document.getElementById(k).value = s[k];
         });
       }
@@ -1124,7 +1148,7 @@ async function saveAll() {
   if (!userId) { toast('ログインが必要です'); return; }
   try {
     const s = {};
-    ['age','retire','life','salary','inc_other','child_benefit','child_age','nenkin','retire_other','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS].forEach(k => {
+    ['age','retire','life','salary','inc_other','child_benefit','child_age','nenkin','retire_other','juukyo','sonota','savings','chochiku','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
       s[k] = parseFloat(document.getElementById(k).value);
     });
 
@@ -1178,6 +1202,7 @@ function calcPlan() {
   const child_end_year = currentYear + (18 - child_age); // 子が18歳になる年
   const seikatsu = CAT_IDS.reduce((s,k) => s + g(k), 0) * 12;
   const juukyo = g('juukyo') * 12, sonota = g('sonota');
+  const taxTotal = TAX_IDS.reduce((s,k) => s + g(k), 0);
   const r = g('rimawari') / 100;
   const tori = g('tori') / 100;
   let asset = g('savings');
@@ -1200,7 +1225,7 @@ function calcPlan() {
     // 退職後：取り崩し額を収入に加算（資産から引き出す）
     const toriAmount = (a >= retire && tori > 0) ? Math.max(asset, 0) * tori : 0;
     income += toriAmount;
-    let expense = seikatsu + juukyo + sonota;
+    let expense = seikatsu + juukyo + sonota + taxTotal;
     let evStr = '';
     for (const ev of events) {
       if (ev.on && ev.year === yr) {
@@ -1246,6 +1271,10 @@ function update() {
   document.getElementById('v-seikatsu-total').textContent = catTotal.toFixed(1) + '万円/月';
   document.getElementById('v-juukyo').textContent = Math.round(g('juukyo')).toLocaleString() + '万';
   document.getElementById('v-sonota').textContent = Math.round(g('sonota')).toLocaleString() + '万';
+  TAX_IDS.forEach(k => {
+    document.getElementById('v-'+k).textContent = Math.round(g(k)).toLocaleString() + '万';
+  });
+  document.getElementById('v-tax_total').textContent = '合計 ' + Math.round(TAX_IDS.reduce((s,k)=>s+g(k),0)).toLocaleString() + '万/年';
   document.getElementById('v-savings').textContent = Math.round(g('savings')).toLocaleString() + '万';
   document.getElementById('v-chochiku').textContent = Math.round(g('chochiku')).toLocaleString() + '万';
   document.getElementById('v-rimawari').textContent = g('rimawari').toFixed(1) + '%';
