@@ -1478,10 +1478,13 @@ function calcPlan() {
   const age = Math.round(g('age')), retire = Math.round(g('retire')), life = Math.round(g('life'));
   const salary = g('salary'), inc_other = g('inc_other'), nenkin = g('nenkin'), retire_other = g('retire_other');
   // 子供3人分：[月額年換算, 受給終了年]
-  const children = [1,2,3].map(i => ({
-    benefit: g('child_benefit_'+i) * 12,
-    endYear: currentYear + (18 - Math.round(g('child_age_'+i)))
-  }));
+  const children = [1,2,3].map(i => {
+    const slot = document.getElementById('child_slot_'+i);
+    const visible = !slot || slot.style.display !== 'none';
+    const benefit = g('child_benefit_'+i) * 12;
+    const endYear = currentYear + (18 - Math.round(g('child_age_'+i)));
+    return { benefit: (visible && benefit > 0) ? benefit : 0, endYear };
+  });
   const seikatsu = CAT_IDS.reduce((s,k) => s + g(k), 0) * 12;
   const juukyo = g('juukyo') * 12 + g('loan_bonus') + g('kanri') * 12, sonota = g('sonota');
   const taxTotal = TAX_IDS.reduce((s,k) => s + g(k), 0);
@@ -1511,7 +1514,7 @@ function calcPlan() {
     income += toriAmount;
     // 積立終了年齢を超えたら積立額を0にする
     const chochiku_this = (a < chochiku_end) ? chochiku : 0;
-    let expense = seikatsu + juukyo + sonota + taxTotal;
+    let expense = seikatsu + juukyo + sonota + taxTotal + chochiku_this; // 積立も支出として収支に反映
     let evStr = '';
     for (const ev of events) {
       if (ev.on && ev.year === yr) {
@@ -1522,7 +1525,8 @@ function calcPlan() {
     const balance = income - expense;
     // 資産計算：取り崩し後の残高に利回りを適用し、給与・年金・生活費の差引を加算
     // (asset - toriAmount) * (1+r) + (income - toriAmount - expense)
-    asset = (asset - toriAmount) * (1 + r) + (balance - toriAmount) + chochiku_this;
+    // 積立はbalance（収支）に含まれているので別加算不要
+    asset = (asset - toriAmount) * (1 + r) + (balance - toriAmount);
     plan.push({ yr, age: a, income: Math.round(income), expense: Math.round(expense), balance: Math.round(balance), asset: Math.round(asset), ev: evStr, isRetire: a === retire, isPension: a === 65, chochiku: Math.round(chochiku_this), tori: Math.round(toriAmount) });
   }
   return plan;
@@ -1639,7 +1643,7 @@ function renderNenpyo(plan) {
       <td class="green">${r.income.toLocaleString()}</td>
       <td class="red">${r.expense.toLocaleString()}</td>
       <td class="${r.balance >= 0 ? 'green' : 'red'}">${r.balance >= 0 ? '+' : ''}${r.balance.toLocaleString()}</td>
-      <td style="color:var(--blue)">${r.chochiku > 0 ? '+'+r.chochiku.toLocaleString() : '—'}</td>
+      <td style="color:var(--blue)">${r.chochiku > 0 ? r.chochiku.toLocaleString() : '—'}</td>
       <td style="color:var(--purple)">${r.tori > 0 ? r.tori.toLocaleString() : '—'}</td>
       <td class="${r.asset >= 0 ? 'green' : 'red'}" style="font-weight:500">${r.asset.toLocaleString()}</td>
       <td class="ev-cell">${r.ev}</td>
