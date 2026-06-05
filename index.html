@@ -1111,8 +1111,8 @@ async function loadActualData() {
       months.push(d.getFullYear()+'-'+(String(d.getMonth()+1).padStart(2,'0')));
     }
     const oldest = months[months.length-1]+'-01';
-    const newest = months[0]+'-31';
-    const base = `user_id=eq.${userId}&date=gte.${oldest}&date=lte.${newest}`;
+    const nextM = (d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`)(new Date(now.getFullYear(), now.getMonth() - 0, 1));
+    const base = `user_id=eq.${userId}&date=gte.${oldest}&date=lt.${nextM}`;
 
     const [rExp, rInc] = await Promise.all([
       apiFetch(SU+'/rest/v1/entries?select=amount,date,category&type=eq.exp&'+base, {headers: H()}),
@@ -1258,10 +1258,10 @@ async function importFromKakeibo() {
       months.push(d.getFullYear()+'-'+(String(d.getMonth()+1).padStart(2,'0')));
     }
     const oldest = months[months.length-1]+'-01';
-    const newest = months[0]+'-31';
+    const nextM2 = (d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`)(new Date(now.getFullYear(), now.getMonth(), 1));
 
     // 支出のみ取得
-    const baseParams = `user_id=eq.${userId}&date=gte.${oldest}&date=lte.${newest}&order=date.asc`;
+    const baseParams = `user_id=eq.${userId}&date=gte.${oldest}&date=lt.${nextM2}&order=date.asc`;
     const rExp = await apiFetch(SU+'/rest/v1/entries?select=amount,date,category&type=eq.exp&'+baseParams, {headers: H()});
     if (!rExp.ok) throw new Error('データ取得失敗');
     const expRows = await rExp.json();
@@ -1321,8 +1321,8 @@ async function importIncomeFromKakeibo() {
       months.push(d.getFullYear()+'-'+(String(d.getMonth()+1).padStart(2,'0')));
     }
     const oldest = months[months.length-1]+'-01';
-    const newest = months[0]+'-31';
-    const baseParams = `user_id=eq.${userId}&date=gte.${oldest}&date=lte.${newest}&order=date.asc`;
+    const nextM3 = (d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`)(new Date(now.getFullYear(), now.getMonth(), 1));
+    const baseParams = `user_id=eq.${userId}&date=gte.${oldest}&date=lt.${nextM3}&order=date.asc`;
 
     const rInc = await apiFetch(SU+'/rest/v1/entries?select=amount,date,category&type=eq.inc&'+baseParams, {headers: H()});
     if (!rInc.ok) throw new Error('データ取得失敗');
