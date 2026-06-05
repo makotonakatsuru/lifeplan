@@ -649,7 +649,7 @@
     <div class="sidebar-section">
       <div class="section-label" style="display:flex;justify-content:space-between;align-items:center">
         <span>定年前の収入（年）</span>
-        <button class="kakeibo-btn" id="income-kakeibo-btn" onclick="importIncomeFromKakeibo()">家計簿から反映</button><span style="font-size:10px;color:var(--text3);margin-left:4px">直近6ヶ月平均</span>
+        <button class="kakeibo-btn" id="income-kakeibo-btn" onclick="importIncomeFromKakeibo()">家計簿から反映</button><span id="income-reflected-period" style="font-size:10px;color:var(--text3);margin-left:4px">直近6ヶ月平均</span>
       </div>
       <div class="slider-row">
         <div class="slider-header"><span class="slider-label">給与収入（手取り）</span><span class="slider-val" id="v-salary">400万</span></div>
@@ -720,7 +720,7 @@
     <div class="sidebar-section">
       <div class="section-label" style="display:flex;justify-content:space-between;align-items:center">
         <span>生活費（月別）</span>
-        <button class="kakeibo-btn" onclick="importFromKakeibo()">家計簿から反映</button><span style="font-size:10px;color:var(--text3);margin-left:4px">直近6ヶ月平均</span>
+        <button class="kakeibo-btn" onclick="importFromKakeibo()">家計簿から反映</button><span id="exp-reflected-period" style="font-size:10px;color:var(--text3);margin-left:4px">直近6ヶ月平均</span>
       </div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:10px;padding:6px 8px;background:var(--bg3);border-radius:6px;display:flex;justify-content:space-between">
         <span>生活費合計</span>
@@ -1234,6 +1234,17 @@ function renderCompareCard() {
 }
 
 // ===== 家計簿から反映 =====
+function periodLabel(months) {
+  // months: ['2025-03','2025-04','2025-05'] のような配列
+  if (!months || !months.length) return '';
+  const fmt = m => {
+    const [y,mo] = m.split('-');
+    return `${y}年${parseInt(mo)}月`;
+  };
+  if (months.length === 1) return fmt(months[0]);
+  return `${fmt(months[months.length-1])}〜${fmt(months[0])} 平均`;
+}
+
 async function importFromKakeibo() {
   if (!userId) { toast('ログインが必要です'); return; }
   const btn = document.querySelector('.kakeibo-btn');
@@ -1290,7 +1301,9 @@ async function importFromKakeibo() {
     }
 
     update();
-    toast(`支出を反映しました（直近${numMonths}ヶ月）`);
+    const expPeriod = periodLabel(allMonths);
+    document.getElementById('exp-reflected-period').textContent = expPeriod;
+    toast(`支出を反映しました（${expPeriod}）`);
   } catch(e) { toast('反映に失敗しました: '+e.message); }
   btn.disabled = false; btn.textContent = '家計簿から反映';
 }
@@ -1340,7 +1353,9 @@ async function importIncomeFromKakeibo() {
     setSlider('inc_other', incGroup.inc_other);
 
     update();
-    toast(`収入を反映しました（直近${numMonths}ヶ月）`);
+    const incPeriod = periodLabel(allMonths);
+    document.getElementById('income-reflected-period').textContent = incPeriod;
+    toast(`収入を反映しました（${incPeriod}）`);
   } catch(e) { toast('反映に失敗しました: '+e.message); }
   btn.disabled = false; btn.textContent = '家計簿から反映';
 }
