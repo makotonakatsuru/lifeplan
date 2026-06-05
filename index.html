@@ -529,7 +529,9 @@
 
     /* テーブルスクロール */
     .table-wrap { overflow-x: auto; }
-    table { min-width: 500px; }
+    table { min-width: 680px; }
+    /* スマホでは積立・取崩列を非表示 */
+    .col-chochiku, .col-tori { display: none; }
 
     #update-toast { font-size: 13px; padding: 12px 20px; }
   }
@@ -912,7 +914,7 @@
             <thead>
               <tr>
                 <th>年</th><th>年齢</th><th>収入</th><th>支出</th>
-                <th>収支</th><th>積立</th><th>取崩</th><th>資産残高</th><th>イベント</th>
+                <th>収支</th><th class="col-chochiku">積立</th><th class="col-tori">取崩</th><th>資産残高</th><th>イベント</th>
               </tr>
             </thead>
             <tbody id="nenpyo-body"></tbody>
@@ -1643,8 +1645,8 @@ function renderNenpyo(plan) {
       <td class="green">${r.income.toLocaleString()}</td>
       <td class="red">${r.expense.toLocaleString()}</td>
       <td class="${r.balance >= 0 ? 'green' : 'red'}">${r.balance >= 0 ? '+' : ''}${r.balance.toLocaleString()}</td>
-      <td style="color:var(--blue)">${r.chochiku > 0 ? r.chochiku.toLocaleString() : '—'}</td>
-      <td style="color:var(--purple)">${r.tori > 0 ? r.tori.toLocaleString() : '—'}</td>
+      <td class="col-chochiku" style="color:var(--blue)">${r.chochiku > 0 ? r.chochiku.toLocaleString() : '—'}</td>
+      <td class="col-tori" style="color:var(--purple)">${r.tori > 0 ? r.tori.toLocaleString() : '—'}</td>
       <td class="${r.asset >= 0 ? 'green' : 'red'}" style="font-weight:500">${r.asset.toLocaleString()}</td>
       <td class="ev-cell">${r.ev}</td>
     </tr>
