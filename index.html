@@ -834,6 +834,11 @@
         <div class="slider-header"><span class="slider-label">取り崩し率（退職後・年）</span><span class="slider-val" id="v-tori">4.0%</span></div>
         <input type="range" id="tori" min="0" max="6" value="4" step="0.5" oninput="update()">
       </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">物価上昇率（年）</span><span class="slider-val" id="v-inflation">2.0%</span></div>
+        <input type="range" id="inflation" min="0" max="5" value="2" step="0.1" oninput="update()">
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;padding-left:2px">※支出に毎年複利で反映。収入は今の金額ベース</div>
+      </div>
     </div>
     </div><!-- /sidebar-inner -->
   </div>
@@ -1386,7 +1391,7 @@ async function loadFromDB() {
       const arr = await rSets.json();
       if (arr.length && arr[0].settings) {
         const s = arr[0].settings;
-        ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','chochiku_end','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
+        ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','chochiku_end','rimawari','tori','inflation',...CAT_IDS,...TAX_IDS].forEach(k => {
           if (s[k] !== undefined) document.getElementById(k).value = s[k];
         });
         // 子供人数を復元
@@ -1428,7 +1433,7 @@ async function saveAll() {
   if (!userId) { toast('ログインが必要です'); return; }
   try {
     const s = { childCount };
-    ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','chochiku_end','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
+    ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','chochiku_end','rimawari','tori','inflation',...CAT_IDS,...TAX_IDS].forEach(k => {
       s[k] = parseFloat(document.getElementById(k).value);
     });
 
@@ -1492,6 +1497,7 @@ function calcPlan() {
   const taxTotal = TAX_IDS.reduce((s,k) => s + g(k), 0);
   const r = g('rimawari') / 100;
   const tori = g('tori') / 100;
+  const inflation = g('inflation') / 100;
   const chochiku = g('chochiku');
   const chochiku_end = Math.round(g('chochiku_end'));
   let asset = g('savings');
@@ -1516,7 +1522,9 @@ function calcPlan() {
     income += toriAmount;
     // 積立終了年齢を超えたら積立額を0にする
     const chochiku_this = (a < chochiku_end) ? chochiku : 0;
-    let expense = seikatsu + juukyo + sonota + taxTotal + chochiku_this; // 積立も支出として収支に反映
+    // 物価上昇を生活費・住居費・その他支出・税金に適用（積立は今の価値ベース）
+    const inflFactor = Math.pow(1 + inflation, a - age);
+    let expense = (seikatsu + juukyo + sonota + taxTotal) * inflFactor + chochiku_this;
     let evStr = '';
     for (const ev of events) {
       if (ev.on !== false && ev.year === yr) {
@@ -1576,6 +1584,7 @@ function update() {
     ce > curAge ? `→ あと${ce - curAge}年（${currentYear + (ce - curAge)}年まで）` : '現在の年齢以下のため積立なし';
   document.getElementById('v-rimawari').textContent = g('rimawari').toFixed(1) + '%';
   document.getElementById('v-tori').textContent = g('tori').toFixed(1) + '%';
+  document.getElementById('v-inflation').textContent = g('inflation').toFixed(1) + '%';
 
   renderActualBadges();
   renderCompareCard();
