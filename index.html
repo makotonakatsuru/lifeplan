@@ -1369,7 +1369,7 @@ let dirty = false;
 async function loadFromDB() {
   document.getElementById('loading').style.display = 'flex';
   try {
-    const rSets = await apiFetch(SU+'/rest/v1/lifeplan_settings?select=settings&user_key=eq.'+userId+'&limit=1', {headers: H()});
+    const rSets = await apiFetch(SU+'/rest/v1/lifeplan_settings?select=settings&user_key=eq.'+userId+'&order=updated_at.desc&limit=1', {headers: H()});
     if (rSets.ok) {
       const arr = await rSets.json();
       if (arr.length && arr[0].settings) {
@@ -1414,9 +1414,11 @@ async function saveAll() {
       s[k] = parseFloat(document.getElementById(k).value);
     });
 
+    // 既存を削除してから新規挿入（確実な上書き保存）
+    await apiFetch(SU+'/rest/v1/lifeplan_settings?user_key=eq.'+userId, {method:'DELETE', headers: H()});
     await apiFetch(SU+'/rest/v1/lifeplan_settings', {
       method:'POST',
-      headers: H({'Prefer':'resolution=merge-duplicates'}),
+      headers: H(),
       body: JSON.stringify({ user_key: userId, settings: s, updated_at: new Date().toISOString() })
     });
 
