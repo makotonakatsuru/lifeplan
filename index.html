@@ -629,14 +629,38 @@
         <div class="slider-header"><span class="slider-label">その他収入（年）</span><span class="slider-val" id="v-inc_other">140万</span></div>
         <input type="range" id="inc_other" min="0" max="1000" value="140" step="10" oninput="update()">
       </div>
+      <!-- 子供1 -->
+      <div style="font-size:10px;color:var(--text3);margin:8px 0 4px 2px;letter-spacing:.05em">子供1</div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">子供手当（月）</span><span class="slider-val" id="v-child_benefit">0万</span></div>
-        <input type="range" id="child_benefit" min="0" max="10" value="0" step="0.1" oninput="update()">
+        <div class="slider-header"><span class="slider-label">手当（月）</span><span class="slider-val" id="v-child_benefit_1">0万</span></div>
+        <input type="range" id="child_benefit_1" min="0" max="10" value="0" step="0.1" oninput="update()">
       </div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">子供の現在の年齢</span><span class="slider-val" id="v-child_age">—</span></div>
-        <input type="range" id="child_age" min="0" max="17" value="0" step="1" oninput="update()">
-        <div id="child_benefit_note" style="font-size:10px;color:var(--text3);margin-top:2px;padding-left:2px"></div>
+        <div class="slider-header"><span class="slider-label">現在の年齢</span><span class="slider-val" id="v-child_age_1">—</span></div>
+        <input type="range" id="child_age_1" min="0" max="17" value="0" step="1" oninput="update()">
+        <div id="child_note_1" style="font-size:10px;color:var(--text3);margin-top:2px;padding-left:2px"></div>
+      </div>
+      <!-- 子供2 -->
+      <div style="font-size:10px;color:var(--text3);margin:8px 0 4px 2px;letter-spacing:.05em">子供2</div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">手当（月）</span><span class="slider-val" id="v-child_benefit_2">0万</span></div>
+        <input type="range" id="child_benefit_2" min="0" max="10" value="0" step="0.1" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">現在の年齢</span><span class="slider-val" id="v-child_age_2">—</span></div>
+        <input type="range" id="child_age_2" min="0" max="17" value="0" step="1" oninput="update()">
+        <div id="child_note_2" style="font-size:10px;color:var(--text3);margin-top:2px;padding-left:2px"></div>
+      </div>
+      <!-- 子供3 -->
+      <div style="font-size:10px;color:var(--text3);margin:8px 0 4px 2px;letter-spacing:.05em">子供3</div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">手当（月）</span><span class="slider-val" id="v-child_benefit_3">0万</span></div>
+        <input type="range" id="child_benefit_3" min="0" max="10" value="0" step="0.1" oninput="update()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">現在の年齢</span><span class="slider-val" id="v-child_age_3">—</span></div>
+        <input type="range" id="child_age_3" min="0" max="17" value="0" step="1" oninput="update()">
+        <div id="child_note_3" style="font-size:10px;color:var(--text3);margin-top:2px;padding-left:2px"></div>
       </div>
     </div>
 
@@ -1120,7 +1144,7 @@ async function loadFromDB() {
       const arr = await rSets.json();
       if (arr.length && arr[0].settings) {
         const s = arr[0].settings;
-        ['age','retire','life','salary','inc_other','child_benefit','child_age','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
+        ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
           if (s[k] !== undefined) document.getElementById(k).value = s[k];
         });
       }
@@ -1156,7 +1180,7 @@ async function saveAll() {
   if (!userId) { toast('ログインが必要です'); return; }
   try {
     const s = {};
-    ['age','retire','life','salary','inc_other','child_benefit','child_age','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
+    ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','rimawari','tori',...CAT_IDS,...TAX_IDS].forEach(k => {
       s[k] = parseFloat(document.getElementById(k).value);
     });
 
@@ -1205,9 +1229,11 @@ function g(id) { return parseFloat(document.getElementById(id).value); }
 function calcPlan() {
   const age = Math.round(g('age')), retire = Math.round(g('retire')), life = Math.round(g('life'));
   const salary = g('salary'), inc_other = g('inc_other'), nenkin = g('nenkin'), retire_other = g('retire_other');
-  const child_benefit = g('child_benefit') * 12; // 月→年額
-  const child_age = Math.round(g('child_age'));
-  const child_end_year = currentYear + (18 - child_age); // 子が18歳になる年
+  // 子供3人分：[月額年換算, 受給終了年]
+  const children = [1,2,3].map(i => ({
+    benefit: g('child_benefit_'+i) * 12,
+    endYear: currentYear + (18 - Math.round(g('child_age_'+i)))
+  }));
   const seikatsu = CAT_IDS.reduce((s,k) => s + g(k), 0) * 12;
   const juukyo = g('juukyo') * 12 + g('loan_bonus') + g('kanri') * 12, sonota = g('sonota');
   const taxTotal = TAX_IDS.reduce((s,k) => s + g(k), 0);
@@ -1229,7 +1255,7 @@ function calcPlan() {
     // 年金は65歳以降は常に加算
     if (a >= 65) income += nenkin;
     // 子供手当：子が18歳になる年の前まで加算
-    if (child_benefit > 0 && yr < child_end_year) income += child_benefit;
+    for (const c of children) { if (c.benefit > 0 && yr < c.endYear) income += c.benefit; }
     // 退職後：取り崩し額を収入に加算（資産から引き出す）
     const toriAmount = (a >= retire && tori > 0) ? Math.max(asset, 0) * tori : 0;
     income += toriAmount;
@@ -1259,16 +1285,14 @@ function update() {
   document.getElementById('v-life').textContent = Math.round(g('life')) + '歳';
   document.getElementById('v-salary').textContent = Math.round(g('salary')).toLocaleString() + '万';
   document.getElementById('v-inc_other').textContent = Math.round(g('inc_other')).toLocaleString() + '万';
-  const cb = g('child_benefit'), ca = Math.round(g('child_age'));
-  document.getElementById('v-child_benefit').textContent = cb.toFixed(1) + '万';
-  document.getElementById('v-child_age').textContent = ca + '歳';
-  const endYr = currentYear + (18 - ca);
-  const noteEl = document.getElementById('child_benefit_note');
-  if (cb > 0) {
-    noteEl.textContent = ca < 18 ? `→ ${endYr}年まで受給（子が18歳）` : '子が18歳以上のため対象外';
-  } else {
-    noteEl.textContent = '';
-  }
+  [1,2,3].forEach(i => {
+    const cb = g('child_benefit_'+i), ca = Math.round(g('child_age_'+i));
+    document.getElementById('v-child_benefit_'+i).textContent = cb.toFixed(1) + '万';
+    document.getElementById('v-child_age_'+i).textContent = ca + '歳';
+    const endYr = currentYear + (18 - ca);
+    const noteEl = document.getElementById('child_note_'+i);
+    noteEl.textContent = cb > 0 ? `→ ${endYr}年まで受給（子が18歳）` : '';
+  });
   document.getElementById('v-nenkin').textContent = Math.round(g('nenkin')).toLocaleString() + '万';
   document.getElementById('v-retire_other').textContent = Math.round(g('retire_other')).toLocaleString() + '万';
   // カテゴリ別生活費
