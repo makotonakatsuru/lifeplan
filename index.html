@@ -958,7 +958,7 @@
 </div>
 
 <script>
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.6.1';
 
 // カテゴリ別生活費スライダーID一覧
 const CAT_IDS = ['cat_food','cat_eat_out','cat_transport','cat_comms','cat_utility','cat_medical','cat_leisure','cat_other'];
@@ -1605,7 +1605,12 @@ function update() {
 function renderMetrics(plan) {
   const final = plan[plan.length - 1].asset;
   const peak = Math.max(...plan.map(r => r.asset));
-  const deficit = plan.filter(r => r.balance < 0).length;
+  const deficitRows = plan.filter(r => r.balance < 0);
+  const deficit = deficitRows.length;
+  const deficitRange = deficit === 0 ? '' :
+    (deficitRows[0].yr === deficitRows[deficit - 1].yr
+      ? `${deficitRows[0].yr}年（${deficitRows[0].age}歳）`
+      : `${deficitRows[0].yr}〜${deficitRows[deficit - 1].yr}年（${deficitRows[0].age}〜${deficitRows[deficit - 1].age}歳）`);
   const retireAge = Math.round(g('retire'));
   const retireRow = plan.find(r => r.age === retireAge);
   const retireAsset = retireRow ? retireRow.asset : 0;
@@ -1629,7 +1634,7 @@ function renderMetrics(plan) {
     <div class="metric">
       <div class="metric-label">赤字年数</div>
       <div class="metric-val ${deficit > 0 ? 'bad' : 'good'}">${deficit}<span style="font-size:13px">年</span></div>
-      <div class="metric-sub">${deficit === 0 ? '全年黒字' : '収支マイナスの年'}</div>
+      <div class="metric-sub">${deficit === 0 ? '全年黒字' : deficitRange}</div>
     </div>
   `;
 
