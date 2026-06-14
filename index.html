@@ -831,7 +831,12 @@
         <input type="range" id="rimawari" min="0" max="8" value="3" step="0.5" oninput="update()">
       </div>
       <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">取り崩し率（退職後・年）</span><span class="slider-val" id="v-tori">4.0%</span></div>
+        <div class="slider-header"><span class="slider-label">取り崩し開始年齢</span><span class="slider-val" id="v-tori_start">65歳</span></div>
+        <input type="range" id="tori_start" min="50" max="80" value="65" step="1" oninput="update()">
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;padding-left:2px">※この年齢から資産の取り崩しを開始</div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span class="slider-label">取り崩し率（年）</span><span class="slider-val" id="v-tori">4.0%</span></div>
         <input type="range" id="tori" min="0" max="6" value="4" step="0.5" oninput="update()">
       </div>
       <div class="slider-row">
@@ -953,7 +958,7 @@
 </div>
 
 <script>
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 
 // カテゴリ別生活費スライダーID一覧
 const CAT_IDS = ['cat_food','cat_eat_out','cat_transport','cat_comms','cat_utility','cat_medical','cat_leisure','cat_other'];
@@ -1391,7 +1396,7 @@ async function loadFromDB() {
       const arr = await rSets.json();
       if (arr.length && arr[0].settings) {
         const s = arr[0].settings;
-        ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','chochiku_end','rimawari','tori','inflation',...CAT_IDS,...TAX_IDS].forEach(k => {
+        ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','chochiku_end','rimawari','tori','tori_start','inflation',...CAT_IDS,...TAX_IDS].forEach(k => {
           if (s[k] !== undefined) document.getElementById(k).value = s[k];
         });
         // 子供人数を復元
@@ -1433,7 +1438,7 @@ async function saveAll() {
   if (!userId) { toast('ログインが必要です'); return; }
   try {
     const s = { childCount };
-    ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','chochiku_end','rimawari','tori','inflation',...CAT_IDS,...TAX_IDS].forEach(k => {
+    ['age','retire','life','salary','inc_other','child_benefit_1','child_age_1','child_benefit_2','child_age_2','child_benefit_3','child_age_3','nenkin','retire_other','juukyo','loan_bonus','kanri','sonota','savings','chochiku','chochiku_end','rimawari','tori','tori_start','inflation',...CAT_IDS,...TAX_IDS].forEach(k => {
       s[k] = parseFloat(document.getElementById(k).value);
     });
 
@@ -1497,6 +1502,7 @@ function calcPlan() {
   const taxTotal = TAX_IDS.reduce((s,k) => s + g(k), 0);
   const r = g('rimawari') / 100;
   const tori = g('tori') / 100;
+  const tori_start = Math.round(g('tori_start'));
   const inflation = g('inflation') / 100;
   const chochiku = g('chochiku');
   const chochiku_end = Math.round(g('chochiku_end'));
@@ -1517,8 +1523,8 @@ function calcPlan() {
     if (a >= 65) income += nenkin;
     // 子供手当：子が18歳になる年の前まで加算
     for (const c of children) { if (c.benefit > 0 && yr < c.endYear) income += c.benefit; }
-    // 退職後：取り崩し額を収入に加算（資産から引き出す）
-    const toriAmount = (a >= retire && tori > 0) ? Math.max(asset, 0) * tori : 0;
+    // 取り崩し開始年齢以降：取り崩し額を収入に加算（資産から引き出す）
+    const toriAmount = (a >= tori_start && tori > 0) ? Math.max(asset, 0) * tori : 0;
     income += toriAmount;
     // 積立終了年齢を超えたら積立額を0にする
     const chochiku_this = (a < chochiku_end) ? chochiku : 0;
@@ -1583,6 +1589,7 @@ function update() {
   document.getElementById('chochiku_end_note').textContent =
     ce > curAge ? `→ あと${ce - curAge}年（${currentYear + (ce - curAge)}年まで）` : '現在の年齢以下のため積立なし';
   document.getElementById('v-rimawari').textContent = g('rimawari').toFixed(1) + '%';
+  document.getElementById('v-tori_start').textContent = Math.round(g('tori_start')) + '歳';
   document.getElementById('v-tori').textContent = g('tori').toFixed(1) + '%';
   document.getElementById('v-inflation').textContent = g('inflation').toFixed(1) + '%';
 
