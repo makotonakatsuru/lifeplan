@@ -629,6 +629,20 @@ $('acForm').addEventListener('submit',doLogin);
 $('acOut').addEventListener('click',doLogout);
 $('acImport').addEventListener('click',importLifeplan);
 $('acOpen').addEventListener('click',()=>{$('acForm').hidden=!$('acForm').hidden;if(!$('acForm').hidden)$('acEmail').focus();});
+async function pullLatest(){
+  if(!AU.uid||saving||saveTimer)return;
+  try{
+    const r=await api('/rest/v1/nisa_settings?select=settings&user_key=eq.'+AU.uid+'&limit=1');
+    if(!r.ok)return;const a=await r.json();
+    if(!a.length||!a[0].settings)return;
+    const json=JSON.stringify(a[0].settings);
+    if(json===lastSaved||saving||saveTimer)return;
+    applyAll(a[0].settings);lastSaved=JSON.stringify(gatherAll());acSay('ほかの端末で変えた数字を読み込みました');
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullLatest();});
+window.addEventListener('focus',pullLatest);
+setInterval(()=>{if(document.visibilityState==='visible')pullLatest();},30000);
 (async()=>{
   AU.uid=lsGet('nisa_uid');acRender();
   if(AU.uid){if(await auRefresh()){acRender();loadMine();}else{AU.uid=null;lsSet('nisa_uid',null);acRender();}}
