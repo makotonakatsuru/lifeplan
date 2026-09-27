@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NISAつみたて電卓</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NISA電卓">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<style>html{color-scheme:light}body{margin:0;-webkit-text-size-adjust:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#f3f5f4;--card:#ffffff;--ink:#16211d;--sub:#4d5b55;--muted:#7c8983;--line:#dbe2de;
+  --accent:#1f6f5c;--accent-soft:#e2f0eb;--principal:#b9c3bf;--gain:#2e8fd6;--warn:#9a5a00;--warn-bg:#fff3de;--ok:#1d7a3e;
+  --grid:rgba(90,110,100,.16);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111715;--card:#19211e;--ink:#e8eeeb;--sub:#b3c0ba;--muted:#86948e;--line:#2b3531;
+  --accent:#5cc4a6;--accent-soft:#1d2f29;--principal:#56625d;--gain:#4aa3e8;--warn:#f0b24f;--warn-bg:#33270f;--ok:#62c98a;
+  --grid:rgba(200,220,210,.10);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715;--card:#19211e;--ink:#e8eeeb;--sub:#b3c0ba;--muted:#86948e;--line:#2b3531;
+  --accent:#5cc4a6;--accent-soft:#1d2f29;--principal:#56625d;--gain:#4aa3e8;--warn:#f0b24f;--warn-bg:#33270f;--ok:#62c98a;
+  --grid:rgba(200,220,210,.10);color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;font-size:15px;line-height:1.7;padding-inline:16px;padding-block:24px 48px}
+.wrap{max-width:880px;margin:0 auto;display:grid;gap:20px}
+h1{font-size:26px;font-weight:700;margin:0;text-wrap:balance;letter-spacing:.02em}
+.lead{color:var(--sub);margin:4px 0 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.ctrls{display:grid;gap:18px}
+.ctrl label{display:flex;justify-content:space-between;align-items:baseline;font-weight:500;margin-bottom:6px}
+.ctrl .hint{font-size:12px;color:var(--muted);font-weight:400}
+.row{display:flex;gap:12px;align-items:center}
+.row input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
+.num{width:92px;display:flex;align-items:center;gap:4px}
+.num input{width:64px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:500 15px "Roboto Mono",monospace;text-align:right}
+.num span{font-size:13px;color:var(--sub)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.presets button{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:999px;padding:4px 12px;font:inherit;font-size:13px;cursor:pointer}
+.presets button:hover{border-color:var(--accent);color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi .l{font-size:13px;color:var(--sub)}
+.kpi .v{font:500 24px "Roboto Mono",monospace;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.kpi.hero{background:var(--accent-soft);border-color:transparent}
+.kpi.hero .v{color:var(--accent)}
+.kpi .s{font-size:12px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--sub);margin-bottom:8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.chart{position:relative;height:320px}
+.notice{border-radius:10px;padding:10px 14px;font-size:14px}
+.notice.warn{background:var(--warn-bg);color:var(--warn)}
+.notice.ok{background:var(--accent-soft);color:var(--ok)}
+.bar{height:10px;border-radius:999px;background:var(--line);overflow:hidden;margin:6px 0 2px}
+.bar div{height:100%;background:var(--accent);border-radius:999px}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.cmp .box{border:1px solid var(--line);border-radius:12px;padding:14px}
+.cmp .box h3{margin:0 0 4px;font-size:15px}
+.cmp .box .v{font:500 20px "Roboto Mono",monospace}
+h2{font-size:18px;margin:0 0 12px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--sub);font-weight:500}
+td:first-child,th:first-child{text-align:left}
+details summary{cursor:pointer;font-weight:500}
+.tips{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:0;padding:0;list-style:none}
+.steps{margin:0;padding:0;list-style:none;display:grid;gap:14px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:32px 1fr;column-gap:12px;color:var(--sub)}
+.steps li::before{counter-increment:s;content:counter(s);grid-row:span 2;width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700}
+.steps b{color:var(--ink)}
+.tips li{border-left:3px solid var(--accent);padding:2px 0 2px 12px;border-radius:0}
+.tips b{display:block}
+.foot{font-size:12px;color:var(--muted)}
+.modes{display:flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;width:fit-content;max-width:100%}
+.modes button{border:0;background:transparent;color:var(--sub);font:inherit;font-size:14px;font-weight:500;padding:6px 16px;border-radius:999px;cursor:pointer}
+.modes button[aria-selected="true"]{background:var(--accent);color:var(--card)}
+.easy-life .ctrl{margin-bottom:14px}
+.msg{font-size:15px;background:var(--accent-soft);border-radius:10px;padding:12px 14px;margin:0 0 12px}
+.msg b{color:var(--accent);font-family:"Roboto Mono",monospace}
+.plan{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:760px){.plan{grid-template-columns:minmax(0,1fr)}}
+.side{display:grid;gap:10px}
+.grp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.grp summary{font-weight:700;font-size:14px;cursor:pointer;padding:2px 0}
+.grp .note{font-size:12px;color:var(--muted);margin:2px 0 6px}
+.sl{display:grid;gap:2px;margin-top:10px}
+.sl .h{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--sub)}
+.sl .h b{font:500 13px "Roboto Mono",monospace;color:var(--ink);white-space:nowrap}
+.sl input{width:100%;accent-color:var(--accent)}
+.main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;min-width:0}
+.ev{display:grid;grid-template-columns:minmax(0,1fr) 76px 84px auto auto;gap:6px;align-items:center;margin-bottom:6px}
+@media (max-width:480px){.ev{grid-template-columns:minmax(0,1fr) 70px 70px;}.ev input[type=text]{grid-column:1/-1}}
+.ev input[type=text],.ev input[type=number]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:14px;min-width:0;width:100%}
+.ev label{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:4px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:16px;padding:4px}
+td.neg{color:#d0503f}
+.feeTbl td,.feeTbl th{text-align:left}
+.feeTbl td:first-child{white-space:normal;min-width:130px}
+.status{border-radius:10px;padding:10px 14px;font-size:14px}
+[hidden]{display:none!important}
+.wrap{max-width:1080px;grid-template-columns:minmax(0,1fr)}
+#mode-easy{grid-template-columns:minmax(0,1fr);max-width:880px;width:100%;margin:0 auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>NISAつみたて電卓</h1>
+    <p class="lead">「毎月ちょっとずつ積み立てたら、将来いくらになるの？」を、グラフで見てみましょう。</p>
+  </header>
+
+  <nav class="modes" role="tablist" aria-label="表示の切り替え">
+    <button type="button" role="tab" id="tabEasy" aria-selected="true">はじめての人向け</button>
+    <button type="button" role="tab" id="tabPlan" aria-selected="false">じぶん用ライフプラン</button>
+  </nav>
+  <section class="card" id="acct" style="padding:14px 18px">
+    <div id="acGuest">
+      <p style="margin:0;font-size:14px;color:var(--sub)">ログインしなくても使えます（入力はこの端末の中だけに保存）。家計簿・ライフプランのアカウントをお持ちの方は、ログインするとスマホとパソコンで同じ数字が使えます。</p>
+      <button type="button" class="btn" id="acOpen" style="margin-top:10px">ログインする</button>
+      <form id="acForm" hidden style="margin-top:10px;display:grid;gap:8px;max-width:360px">
+        <label style="font-size:13px;color:var(--sub)" for="acEmail">メールアドレス</label>
+        <input id="acEmail" type="email" autocomplete="username" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit">
+        <label style="font-size:13px;color:var(--sub)" for="acPass">パスワード</label>
+        <input id="acPass" type="password" autocomplete="current-password" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit">
+        <button type="submit" class="btn" style="justify-self:start">ログイン</button>
+      </form>
+    </div>
+    <div id="acIn" hidden>
+      <p style="margin:0;font-size:14px;color:var(--sub)">ログイン中です。入力した数字はあなた専用の保存場所に自動で保存されます。本人以外は見られません。</p>
+      <div class="presets" style="margin-top:10px">
+        <button type="button" class="btn" id="acImport">ライフプランアプリの数字を読み込む</button>
+        <button type="button" class="btn" id="acOut">ログアウト</button>
+      </div>
+    </div>
+    <p id="acMsg" class="foot" style="margin:8px 0 0" aria-live="polite"></p>
+  </section>
+
+  <div id="mode-easy" style="display:grid;gap:20px">
+
+  <section class="card" aria-label="NISAってなに">
+    <h2>まずは、これだけ知っておけば大丈夫</h2>
+    <ol class="steps">
+      <li><b>NISAは「税金がかからない貯金箱」</b>ふつうは、お金が増えると増えた分から税金が引かれます。NISAの口座なら、増えた分がまるごと自分のものになります。</li>
+      <li><b>買うのは「世界中の会社の詰め合わせ」</b>インデックス投資といって、たくさんの会社に少しずつまとめて投資します。どの会社を選ぶか悩まなくていいのが良いところです。</li>
+      <li><b>100円からでも始められます</b>多くのネット証券では、毎月100円から積み立てができます。まずはお小遣い程度で「やってみる」だけでも立派な一歩です。慣れてきたら少しずつ増やせば大丈夫。</li>
+      <li><b>コツは「少しずつ、長く」</b>長く続けるほど、増えた分がさらに増えていきます。</li>
+    </ol>
+  </section>
+
+  <section class="card ctrls" aria-label="条件">
+    <h2 style="margin:0">動かしてみましょう</h2>
+    <div class="ctrl">
+      <label for="m">毎月いくら積み立てる？ <span class="hint">100円からOK</span></label>
+      <div class="row"><input type="range" id="m" min="0" max="13" step="1" value="8" aria-label="毎月の積立額"><div class="num" style="width:120px"><input id="mN" type="number" min="100" max="50000" step="100" value="10000" style="width:84px"><span>円</span></div></div>
+    </div>
+    <div class="ctrl">
+      <label for="y">何年つづける？</label>
+      <div class="row"><input type="range" id="y" min="1" max="40" step="1" value="20"><div class="num"><input id="yN" type="number" min="1" max="40" step="1" value="20"><span>年</span></div></div>
+    </div>
+    <div class="ctrl">
+      <label for="r">1年でどれくらい増える想定？ <span class="hint">迷ったら4%のままでOK</span></label>
+      <div class="row"><input type="range" id="r" min="0" max="7" step="0.5" value="4"><div class="num"><input id="rN" type="number" min="0" max="7" step="0.5" value="4"><span>%</span></div></div>
+    </div>
+    <div class="presets" aria-label="例">
+      <button type="button" data-p="100,20,4">月100円 × 20年</button>
+      <button type="button" data-p="1000,20,4">月1,000円 × 20年</button>
+      <button type="button" data-p="3000,20,4">月3千円 × 20年</button>
+      <button type="button" data-p="5000,20,4">月5千円 × 20年</button>
+      <button type="button" data-p="10000,20,4">月1万円 × 20年</button>
+    </div>
+  </section>
+
+  <section class="kpis" aria-label="結果">
+    <div class="kpi"><div class="l">自分で入れたお金</div><div class="v" id="k1"></div><div class="s">これが「元本」です</div></div>
+    <div class="kpi"><div class="l">最後にはこうなるかも</div><div class="v" id="k2"></div><div class="s" id="k2s"></div></div>
+    <div class="kpi hero"><div class="l">NISAだから引かれずにすむ税金</div><div class="v" id="k3"></div><div class="s">ふつうの口座なら約2割が税金に</div></div>
+  </section>
+
+  <section class="card">
+    <h2>年ごとの育ち方</h2>
+    <p class="foot" style="margin:-6px 0 10px;font-size:13px">灰色が自分で入れたお金、青が増えた分です。後半になるほど青が大きくなっていきます。</p>
+    <div class="legend"><span><i style="background:var(--principal)"></i>自分で入れたお金</span><span><i style="background:var(--gain)"></i>増えた分（NISAなら税金なし）</span></div>
+    <div class="chart"><canvas id="c" role="img" aria-label="年ごとの元本と運用益の積み上げ棒グラフ"></canvas></div>
+  </section>
+
+  <div id="notice" class="notice"></div>
+
+  <section class="card">
+    <h2>NISAとふつうの口座、手元に残るお金の違い</h2>
+    <div class="cmp">
+      <div class="box"><h3>NISAの口座</h3><div class="v" id="cN"></div><div class="foot">増えた分に税金がかからない</div></div>
+      <div class="box"><h3>ふつうの口座</h3><div class="v" id="cT"></div><div class="foot">増えた分から約2割が引かれる</div></div>
+    </div>
+  </section>
+
+
+  <section class="card easy-life" aria-label="もう少し先まで">
+    <h2>もう少し先まで見てみたい人へ</h2>
+    <p class="foot" style="margin:-6px 0 14px;font-size:13px">上で決めた積み立てを続けて、将来そこから毎月少しずつ受け取ると、何歳ごろまで続けられるかを見てみましょう。</p>
+    <div class="ctrl">
+      <label for="ea">いまの年齢</label>
+      <div class="row"><input type="range" id="ea" min="20" max="70" step="1" value="40"><div class="num"><input id="eaN" type="number" min="20" max="70" step="1" value="40"><span>歳</span></div></div>
+    </div>
+    <div class="ctrl">
+      <label for="es">受け取りを始める年齢</label>
+      <div class="row"><input type="range" id="es" min="50" max="80" step="1" value="65"><div class="num"><input id="esN" type="number" min="50" max="80" step="1" value="65"><span>歳</span></div></div>
+    </div>
+    <div class="ctrl">
+      <label for="ew">毎月いくら受け取る？ <span class="hint">年金にちょっと足すイメージ</span></label>
+      <div class="row"><input type="range" id="ew" min="0.1" max="10" step="0.1" value="1"><div class="num"><input id="ewN" type="number" min="0.1" max="10" step="0.1" value="1"><span>万円</span></div></div>
+    </div>
+    <p class="msg" id="eMsg"></p>
+    <div class="legend"><span><i style="background:var(--gain)"></i>NISAの残高</span></div>
+    <div class="chart" style="height:260px"><canvas id="ec" role="img" aria-label="年齢ごとのNISA残高の推移"></canvas></div>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>年ごとの数字を見る</summary>
+      <div class="tbl" style="margin-top:12px"><table><thead><tr><th>経過</th><th>元本</th><th>評価額</th><th>運用益</th><th>浮く税金</th></tr></thead><tbody id="tb"></tbody></table></div>
+    </details>
+  </section>
+
+
+  <section class="card" aria-label="どこで始めるか">
+    <h2>どこで始める？ 手数料のちがい</h2>
+    <p class="foot" style="margin:-6px 0 12px;font-size:13px">NISAはどこで始めても「税金なし」は同じです。ちがいが出るのは手数料。長く続けるほど、この差が大きくなります。</p>
+    <div class="tbl"><table class="feeTbl">
+      <thead><tr><th>始め方</th><th>買うときの手数料</th><th>持っている間の手数料（年）</th><th>ひとこと</th></tr></thead>
+      <tbody>
+        <tr><td>ネット証券で自分で</td><td>0円</td><td>約0.05〜0.2%</td><td style="white-space:normal">スマホで完結。手数料がいちばん安くすみます</td></tr>
+        <tr><td>銀行・証券会社の窓口（つみたて投資枠）</td><td>0円</td><td>約0.1〜0.5%</td><td style="white-space:normal">相談しながら始められる。選べる商品は少なめ</td></tr>
+        <tr><td>窓口ですすめられた商品（成長投資枠）</td><td>0〜3.3%ほど</td><td>約1〜2%</td><td style="white-space:normal">テーマ型など。手数料を必ず確認しましょう</td></tr>
+        <tr><td>ぜんぶ任せる（ファンドラップなど）</td><td colspan="2">年1.5〜2%ほど</td><td style="white-space:normal">NISAの口座では使えません</td></tr>
+      </tbody></table></div>
+    <p class="foot" style="margin:10px 0 14px">※つみたて投資枠で買える商品は、国のルールで「買うときの手数料0円」「持っている間の手数料も低め」と決まっています。数字は目安で、商品ごとに違います。</p>
+    <h3 style="font-size:15px;margin:0 0 8px">上の積み立て条件で比べると</h3>
+    <div class="cmp" id="feeCmp"></div>
+    <p class="foot" style="margin:8px 0 0">※「1年でどれくらい増える想定？」を手数料を引く前の増え方として、手数料を差し引いて計算しています。</p>
+  </section>
+
+  <section class="card">
+    <h2>知っておいてほしいこと</h2>
+    <ul class="tips">
+      <li><b>下がる年もあります</b>グラフはまっすぐ増えていますが、本当は上がったり下がったりしながら進みます。下がっても慌てて売らないのが一番のコツです。</li>
+      <li><b>生活のお金は別にとっておく</b>急な出費に困らないよう、生活費の何か月分かは預金に残してから始めましょう。</li>
+      <li><b>ほったらかしでOK</b>毎月自動で積み立てる設定にしておけば、あとは見守るだけです。</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-label="はじめ方">
+    <h2>はじめ方は、ざっくり3ステップ</h2>
+    <ol class="steps">
+      <li><b>証券会社を選ぶ</b>スマホで完結するネット証券が手軽です。いつもの銀行の窓口で相談しながら始めることもできます。</li>
+      <li><b>NISA口座をつくる</b>申し込みはスマホで10分ほど。マイナンバーカードがあるとスムーズです。使えるようになるまで1〜2週間ほどかかります。NISA口座は1人1つだけです。</li>
+      <li><b>「毎月いくら・何を買うか」を決める</b>買うものは「全世界株式」や「S&amp;P500」と名前のついたインデックスファンドを選ぶ人が多いです。金額は100円からでOK。あとは自動で積み立てられます。</li>
+    </ol>
+    <p style="margin:14px 0 0;font-size:14px;color:var(--sub)">わからないことは、国（金融庁）のNISA特設サイトにもやさしくまとまっています。<br><a href="https://www.fsa.go.jp/policy/nisa2/index.html" style="color:var(--accent)">金融庁 NISA特設ウェブサイトを開く</a></p>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>もっと詳しく知りたい人へ</summary>
+      <div style="margin-top:12px;display:grid;gap:10px;color:var(--sub);font-size:14px">
+        <p style="margin:0">NISAには「1年にここまで」という上限がありますが、毎月1万円や2万円の積み立てなら、まったく気にしなくて大丈夫です。</p>
+        <p style="margin:0">・税金がかからない期間は、ずっと（期限なし）<br>・途中で必要になったら、いつでも引き出せます<br>・毎月の金額は、あとから増やしたり減らしたりできます</p>
+      </div>
+    </details>
+  </section>
+
+  </div>
+
+  <div id="mode-plan" hidden>
+    <p class="lead" style="margin:0 0 16px">収入・生活費・年金にNISAの積み立てを加えて、一生のお金の流れを見るページです。<span id="planNote"></span></p>
+    <div class="plan">
+      <aside class="side" id="side" aria-label="条件"></aside>
+      <div class="main">
+        <div class="kpis" id="pk"></div>
+        <div class="status" id="pStatus"></div>
+        <section class="card">
+          <h2>資産の推移</h2>
+          <div class="legend"><span><i style="background:var(--principal)"></i>預貯金など</span><span><i style="background:var(--gain)"></i>NISA</span></div>
+          <div class="chart"><canvas id="pc1" role="img" aria-label="年齢ごとの預貯金とNISAの残高の積み上げグラフ"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>毎年の収支</h2>
+          <p class="foot" style="margin:-6px 0 10px;font-size:13px">収入から支出を引いた額です（NISAへの積み立てと取り崩しは含みません）。</p>
+          <div class="chart" style="height:220px"><canvas id="pc2" role="img" aria-label="年齢ごとの年間収支の棒グラフ"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>イベント</h2>
+          <p class="foot" style="margin:-6px 0 10px;font-size:13px">金額はマイナスで支出、プラスで収入（万円）。例：-200 は200万円の支出。</p>
+          <div id="evList"></div>
+          <div class="presets" style="margin-top:8px">
+            <button type="button" class="btn" id="evAdd">＋ イベントを追加</button>
+            <button type="button" class="btn" id="evEdu">教育費を自動で追加</button>
+          </div>
+        </section>
+        <section class="card">
+          <details>
+            <summary>収支年表を見る</summary>
+            <div class="tbl" style="margin-top:12px"><table><thead><tr><th>年</th><th>年齢</th><th>収入</th><th>支出</th><th>収支</th><th>NISA積立</th><th>NISA取崩</th><th>預貯金など</th><th>NISA</th><th>合計</th><th style="text-align:left">イベント</th></tr></thead><tbody id="ptb"></tbody></table></div>
+          </details>
+        </section>
+        <div><button type="button" class="btn" id="pReset">入力を初期値に戻す</button> <span id="pResetMsg" class="foot"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">※毎年同じ利回りで増えると仮定した目安です。実際の値動きは毎年上下し、将来の成果を約束するものではありません。制度は2026年時点の内容です。</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=v=>{const yen=Math.round(v*10000);if(Math.abs(yen)<10000)return yen.toLocaleString('ja-JP')+'円';if(Math.abs(v)<100)return (Math.round(v*10)/10).toLocaleString('ja-JP')+'万円';return Math.round(v).toLocaleString('ja-JP')+'万円';};
+const mSteps=[100,300,500,1000,2000,3000,5000,7000,10000,15000,20000,25000,30000,50000];
+const nearest=y=>{let b=0;mSteps.forEach((s,j)=>{if(Math.abs(s-y)<Math.abs(mSteps[b]-y))b=j;});return b;};
+const setM=y=>{y=Math.min(Math.max(Math.round(y/100)*100,100),50000);$('mN').value=y;$('m').value=nearest(y);};
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const keys=['y','r'];
+try{const s=JSON.parse(localStorage.getItem('nisa-calc-v4')||'null');if(s){keys.forEach(k=>{if(s[k]!=null){$(k).value=s[k];$(k+'N').value=s[k];}});if(s.mYen)setM(+s.mYen);}}catch(e){}
+let chart;
+function colors(){return{p:css('--principal'),g:css('--gain'),t:css('--muted'),grid:css('--grid')};}
+function build(){
+  const c=colors();
+  chart=new Chart($('c'),{type:'bar',data:{labels:[],datasets:[
+    {label:'元本',data:[],backgroundColor:c.p,borderRadius:0,maxBarThickness:24},
+    {label:'運用益',data:[],backgroundColor:c.g,borderRadius:{topLeft:4,topRight:4},maxBarThickness:24}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>x.dataset.label+'：'+fmt(x.raw),footer:t=>'合計：'+fmt(t.reduce((a,b)=>a+b.raw,0))}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{color:c.t,maxRotation:0,autoSkip:true}},
+        y:{stacked:true,grid:{color:c.grid},border:{display:false},ticks:{color:c.t,callback:v=>fmt(v)}}}}});
+}
+function calc(){
+  const m=(+$('mN').value||100)/10000,y=+$('y').value,r=+$('r').value/100/12,init=0;
+  let v=init,rows=[];
+  for(let k=1;k<=y*12;k++){v=v*(1+r)+m;if(k%12===0){const p=init+m*k;rows.push({y:k/12,p,v,g:v-p});}}
+  const p=init+m*y*12,g=v-p,tax=Math.max(g,0)*0.20315;
+  $('k1').textContent=fmt(p);$('k2').textContent=fmt(v);
+  $('k2s').textContent=p>0?'入れたお金の約'+(v/p).toFixed(1)+'倍':'';
+  $('k3').textContent=fmt(tax);
+  $('cN').textContent=fmt(v);$('cT').textContent=fmt(v-tax);
+  chart.data.labels=rows.map(o=>o.y+'年');chart.data.datasets[0].data=rows.map(o=>o.p);chart.data.datasets[1].data=rows.map(o=>o.g);chart.update();
+  $('tb').innerHTML=rows.map(o=>`<tr><td>${o.y}年目</td><td>${fmt(o.p)}</td><td>${fmt(o.v)}</td><td>${fmt(o.g)}</td><td>${fmt(Math.max(o.g,0)*0.20315)}</td></tr>`).join('');
+  const n=$('notice'),yearly=m*12;let msg,warn=false;
+  if(m<0.5){msg='少額でも、NISAならちゃんと税金なしで育ちます。まずは100円からお試しで始めてみるのもおすすめです。';}
+  else{msg='この金額なら、NISAの中で全部まかなえます。安心して始められますね。';}
+  n.textContent=msg;n.className='notice '+(warn?'warn':'ok');
+  try{localStorage.setItem('nisa-calc-v4',JSON.stringify({mYen:$('mN').value,y:$('y').value,r:$('r').value}));}catch(e){}
+}
+keys.forEach(k=>{
+  $(k).addEventListener('input',()=>{$(k+'N').value=$(k).value;calc();});
+  $(k+'N').addEventListener('input',()=>{const el=$(k),v=parseFloat($(k+'N').value);if(isNaN(v))return;el.value=Math.min(Math.max(v,+el.min),+el.max);calc();});
+  $(k+'N').addEventListener('change',()=>{$(k+'N').value=$(k).value;});
+});
+$('m').addEventListener('input',()=>{$('mN').value=mSteps[+$('m').value];calc();});
+$('mN').addEventListener('input',()=>{const v=parseFloat($('mN').value);if(isNaN(v)||v<100)return;$('m').value=nearest(v);calc();});
+$('mN').addEventListener('change',()=>{setM(+$('mN').value||100);calc();});
+document.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.p.split(',');setM(+a[0]);a.slice(1).forEach((v,j)=>{$(keys[j]).value=v;$(keys[j]+'N').value=v;});calc();}));
+build();calc();
+const mq=matchMedia('(prefers-color-scheme: dark)');
+const recolor=()=>{const c=colors();chart.data.datasets[0].backgroundColor=c.p;chart.data.datasets[1].backgroundColor=c.g;chart.options.scales.x.ticks.color=c.t;chart.options.scales.y.ticks.color=c.t;chart.options.scales.y.grid.color=c.grid;chart.update();};
+mq.addEventListener&&mq.addEventListener('change',recolor);
+new MutationObserver(recolor).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+</script>
+<script>
+const LP={charts:{}};
+const lpMan=v=>(v<0?'-':'')+Math.round(Math.abs(v)).toLocaleString('ja-JP')+'万円';
+const lpCss=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function lpMk(id,cfg){if(LP.charts[id])LP.charts[id].destroy();LP.charts[id]=new Chart($(id),cfg);}
+function lpScales(stacked){const t=lpCss('--muted'),g=lpCss('--grid');return{x:{stacked,grid:{display:false},ticks:{color:t,maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{stacked,grid:{color:g},border:{display:false},ticks:{color:t,callback:v=>v.toLocaleString('ja-JP')+'万'}}};}
+function lpSave(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function lpLoad(k){try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}}
+
+/* ---------- はじめての人向け：受け取りシミュレーション ---------- */
+['ea','es','ew'].forEach(k=>{
+  $(k).addEventListener('input',()=>{$(k+'N').value=$(k).value;easyLife();});
+  $(k+'N').addEventListener('input',()=>{const v=parseFloat($(k+'N').value);if(isNaN(v))return;$(k).value=Math.min(Math.max(v,+$(k).min),+$(k).max);easyLife();});
+  $(k+'N').addEventListener('change',()=>{$(k+'N').value=$(k).value;});
+});
+['m','mN','y','yN','r','rN'].forEach(k=>$(k).addEventListener('input',()=>easyLife()));
+$('mN').addEventListener('change',()=>easyLife());
+document.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>setTimeout(easyLife,0)));
+(function(){const s=lpLoad('nisa-easy-life');if(s)['ea','es','ew'].forEach(k=>{if(s[k]!=null){$(k).value=s[k];$(k+'N').value=s[k];}});})();
+function easyLife(){
+  const age=+$('ea').value,start=+$('es').value,w=+$('ew').value,m=(+$('mN').value||100)/10000,yrs=+$('y').value,r=+$('r').value/100/12;
+  lpSave('nisa-easy-life',{ea:age,es:start,ew:w});
+  const msg=$('eMsg');
+  if(start<=age){msg.textContent='受け取りを始める年齢は、いまの年齢より後にしてみてください。';lpMk('ec',{type:'line',data:{labels:[],datasets:[]}});return;}
+  let bal=0,end=null,atStart=0;const L=[],V=[];
+  for(let k=0;age+k/12<=100;k++){
+    const cur=age+k/12;
+    if(k%12===0){L.push(Math.round(cur)+'歳');V.push(Math.max(bal,0)/1);}
+    if(k===(start-age)*12)atStart=bal;
+    if(k<yrs*12&&cur<start)bal+=m;
+    bal*=1+r;
+    if(cur>=start&&end===null){bal-=w;if(bal<=0){bal=0;end=Math.floor(cur);}}
+    if(end!==null&&cur>end+2)break;
+  }
+  const wTxt=w<1?Math.round(w*10000).toLocaleString('ja-JP')+'円':(Math.round(w*10)/10)+'万円';
+  const stopNote=age+yrs>start?'（積み立ては受け取り開始の年齢までで止める計算です）':'';
+  msg.innerHTML=`${start}歳のときのNISAの残高は、およそ<b>${fmt(atStart)}</b>。`+(end!==null
+    ?`そこから毎月${wTxt}ずつ受け取ると、<b>${end}歳ごろ</b>まで続けられる計算です。`
+    :`そこから毎月${wTxt}ずつ受け取っても、100歳のときにまだ<b>${fmt(bal)}</b>残る計算です。`)+stopNote;
+  lpMk('ec',{type:'line',data:{labels:L,datasets:[{data:V,borderColor:lpCss('--gain'),backgroundColor:lpCss('--gain')+'22',fill:true,borderWidth:2,pointRadius:0,tension:.25}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>'NISAの残高：'+fmt(x.raw)}}},scales:lpScales(false)}});
+}
+
+/* ---------- じぶん用ライフプラン ---------- */
+const CY=new Date().getFullYear();
+const LP_GROUPS=[
+  {t:'プロフィール',open:true,s:[['age','現在の年齢',30,70,1,52,'歳'],['retire','退職予定年齢',55,75,1,65,'歳'],['life','想定寿命',70,100,1,85,'歳']]},
+  {t:'NISA',open:true,note:'NISAへの積み立ては、預貯金などから移す扱いで計算します。',s:[['nisa_now','いまのNISA残高',0,1800,10,0,'万'],['nisa_month','毎月の積立額',0,30,0.5,3,'万/月'],['nisa_end','積立をやめる年齢',30,80,1,65,'歳'],['nisa_rate','NISAの利回り',0,8,0.5,4,'%']]},
+  {t:'定年前の収入（年・手取り）',s:[['salary','給与収入',0,2000,10,400,'万'],['inc_other','その他収入',0,1000,10,140,'万']]},
+  {t:'子どもの手当',note:'手当が0なら計算に入りません。18歳になる年まで受け取る計算です。',s:[['child_benefit_1','子ども1 手当',0,10,0.1,0,'万/月'],['child_age_1','子ども1 いまの年齢',0,17,1,0,'歳'],['child_benefit_2','子ども2 手当',0,10,0.1,0,'万/月'],['child_age_2','子ども2 いまの年齢',0,17,1,0,'歳'],['child_benefit_3','子ども3 手当',0,10,0.1,0,'万/月'],['child_age_3','子ども3 いまの年齢',0,17,1,0,'歳']]},
+  {t:'定年後の収入（年）',s:[['nenkin','年金（65歳から）',0,300,5,150,'万'],['retire_other','定年後のその他収入',0,200,10,0,'万']]},
+  {t:'生活費（月）',sum:'cat',s:[['cat_food','食費',0,20,0.1,6,'万'],['cat_eat_out','外食',0,10,0.1,2,'万'],['cat_transport','交通費',0,10,0.1,2,'万'],['cat_comms','通信費',0,5,0.1,1,'万'],['cat_utility','光熱費',0,10,0.1,2,'万'],['cat_medical','医療費',0,5,0.1,1,'万'],['cat_leisure','娯楽',0,10,0.1,1,'万'],['cat_other','その他',0,10,0.1,2,'万']]},
+  {t:'住居・その他支出',s:[['juukyo','住居費',0,30,1,2,'万/月'],['loan_bonus','ローンボーナス払い',0,100,1,0,'万/年'],['kanri','管理費・修繕積立',0,5,0.1,0,'万/月'],['sonota','その他支出',0,300,10,60,'万/年']]},
+  {t:'税金・保険（年）',sum:'tax',s:[['tax_property','固定資産税',0,100,1,10,'万'],['tax_fire','火災保険',0,30,1,3,'万'],['tax_car','自動車税',0,30,1,3,'万'],['tax_ins','その他保険',0,50,1,5,'万']]},
+  {t:'預貯金など・物価',s:[['savings','いまの預貯金など',0,5000,100,1000,'万'],['rimawari','預貯金などの利回り',0,8,0.5,1,'%'],['tori_start','NISAを取り崩し始める年齢',50,90,1,65,'歳'],['tori','NISAの取り崩し率（年）',0,10,0.5,4,'%'],['inflation','物価上昇率',0,5,0.1,2,'%']]}
+];
+const LP_DEF={};LP_GROUPS.forEach(gp=>gp.s.forEach(x=>LP_DEF[x[0]]=x[5]));
+const LP_CAT=LP_GROUPS[5].s.map(x=>x[0]),LP_TAX=LP_GROUPS[7].s.map(x=>x[0]);
+const lpDefEvents=()=>[{name:'住宅リフォーム',year:CY+3,amount:-150,on:true},{name:'子ども教育費',year:CY+1,amount:-200,on:true}];
+let lpEvents=lpDefEvents();
+const lpDec=st=>(String(st).split('.')[1]||'').length;
+function lpBuildSide(){
+  $('side').innerHTML=LP_GROUPS.map((gp,i)=>`<details class="grp"${gp.open?' open':''}><summary>${gp.t}${gp.sum?` <span class="foot" id="sum_${gp.sum}"></span>`:''}</summary>${gp.note?`<div class="note">${gp.note}</div>`:''}${gp.s.map(([id,l,mn,mx,st,dv,u])=>`<div class="sl"><div class="h"><label for="p_${id}">${l}</label><b id="pv_${id}"></b></div><input type="range" id="p_${id}" min="${mn}" max="${mx}" step="${st}" value="${dv}" data-u="${u}"></div>`).join('')}</details>`).join('');
+  $('side').addEventListener('input',e=>{if(e.target.id.startsWith('p_'))lpUpdate();});
+}
+const pg=id=>parseFloat($('p_'+id).value);
+function lpCalc(){
+  const age=Math.round(pg('age')),retire=Math.round(pg('retire')),life=Math.max(Math.round(pg('life')),age);
+  const kids=[1,2,3].map(i=>({b:pg('child_benefit_'+i)*12,end:CY+(18-Math.round(pg('child_age_'+i)))}));
+  const living=LP_CAT.reduce((s,k)=>s+pg(k),0)*12,house=pg('juukyo')*12+pg('loan_bonus')+pg('kanri')*12,other=pg('sonota'),tax=LP_TAX.reduce((s,k)=>s+pg(k),0);
+  const rc=pg('rimawari')/100,rn=pg('nisa_rate')/100,tori=pg('tori')/100,toriStart=Math.round(pg('tori_start')),infl=pg('inflation')/100;
+  const monthly=pg('nisa_month'),nisaEnd=Math.round(pg('nisa_end'));
+  let cash=pg('savings'),nisa=pg('nisa_now'),cost=pg('nisa_now'),gainSum=0,capHit=null;const rows=[];
+  for(let a=age;a<=life;a++){
+    const yr=CY+(a-age);
+    let inc=a<retire?pg('salary')+pg('inc_other'):pg('retire_other');
+    if(a>=65)inc+=pg('nenkin');
+    kids.forEach(c=>{if(c.b>0&&yr<c.end)inc+=c.b;});
+    let exp=(living+house+other+tax)*Math.pow(1+infl,a-age),ev='';
+    lpEvents.forEach(e=>{if(e.on&&+e.year===yr){const amt=+e.amount||0;if(amt<0)exp+=-amt;else inc+=amt;ev+=(ev?' / ':'')+`${e.name}(${amt>0?'+':''}${amt}万)`;}});
+    let contrib=a<nisaEnd?Math.min(monthly*12,360,Math.max(1800-cost,0)):0;
+    if(a<nisaEnd&&monthly>0&&contrib<monthly*12&&capHit===null)capHit=a;
+    cost+=contrib;
+    const draw=a>=toriStart?nisa*tori:0;
+    const bal=inc-exp;
+    cash=(cash>0?cash*(1+rc):cash)+bal-contrib+draw;
+    const growth=(nisa-draw)*rn+contrib*rn/2;gainSum+=Math.max(growth,0);
+    nisa=nisa-draw+contrib+growth;
+    let cover=0;if(cash<0&&nisa>0){cover=Math.min(-cash,nisa);nisa-=cover;cash+=cover;}
+    rows.push({yr,a,inc,exp,bal,contrib,draw:draw+cover,cash,nisa,total:cash+nisa,ev,retire:a===retire});
+  }
+  return{rows,gainSum,capHit,retire,life};
+}
+function lpUpdate(){
+  LP_GROUPS.forEach(gp=>gp.s.forEach(([id,,,,st,,u])=>{const v=pg(id);$('pv_'+id).textContent=v.toFixed(lpDec(st))+u;}));
+  $('sum_cat').textContent='合計 '+LP_CAT.reduce((s,k)=>s+pg(k),0).toFixed(1)+'万/月';
+  $('sum_tax').textContent='合計 '+Math.round(LP_TAX.reduce((s,k)=>s+pg(k),0))+'万/年';
+  const vals={};Object.keys(LP_DEF).forEach(k=>vals[k]=pg(k));lpSave('lifeplan-nisa-v1',{vals,events:lpEvents});
+  const P=lpCalc(),R=P.rows,last=R[R.length-1],rr=R.find(x=>x.retire)||R[0],broke=R.find(x=>x.total<0);
+  $('pk').innerHTML=`<div class="kpi"><div class="l">退職時（${rr.a}歳）の資産</div><div class="v">${lpMan(rr.total)}</div><div class="s">うちNISA ${lpMan(rr.nisa)}</div></div>
+  <div class="kpi"><div class="l">${last.a}歳時点の資産</div><div class="v">${lpMan(last.total)}</div><div class="s">${broke?broke.a+'歳で資産がマイナスに':'寿命まで資産が残ります'}</div></div>
+  <div class="kpi hero"><div class="l">NISAで浮く税金の目安</div><div class="v">${lpMan(P.gainSum*0.20315)}</div><div class="s">運用益 ${lpMan(P.gainSum)} が非課税</div></div>`;
+  const st=$('pStatus');
+  if(broke){st.className='status notice warn';st.textContent=`${broke.a}歳（${broke.yr}年）で資産がマイナスになります。生活費やNISAの積立額、退職年齢を動かして、どこが効くか試してみてください。`;}
+  else{st.className='status notice ok';st.textContent=`退職時の資産は${lpMan(rr.total)}。${last.a}歳まで資産が残る計算です。`+(P.capHit!==null?` なお${P.capHit}歳でNISAの生涯枠（1,800万円）に届くため、そこで積立が止まる計算です。`:'');}
+  const L=R.map(x=>x.a+'歳');
+  lpMk('pc1',{type:'line',data:{labels:L,datasets:[
+    {label:'預貯金など',data:R.map(x=>Math.round(x.cash)),borderColor:lpCss('--principal'),backgroundColor:lpCss('--principal'),fill:'origin',pointRadius:0,borderWidth:1,tension:.2},
+    {label:'NISA',data:R.map(x=>Math.round(x.nisa)),borderColor:lpCss('--gain'),backgroundColor:lpCss('--gain'),fill:'-1',pointRadius:0,borderWidth:1,tension:.2}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>x.dataset.label+'：'+lpMan(x.raw),footer:t=>'合計：'+lpMan(t.reduce((a,b)=>a+b.raw,0))}}},scales:lpScales(true)}});
+  lpMk('pc2',{type:'bar',data:{labels:L,datasets:[{data:R.map(x=>Math.round(x.bal)),backgroundColor:R.map(x=>x.bal>=0?lpCss('--accent'):'#d0503f'),borderRadius:3,maxBarThickness:16}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>'収支：'+lpMan(x.raw)}}},scales:lpScales(false)}});
+  const c=v=>`<td${v<0?' class="neg"':''}>${Math.round(v).toLocaleString('ja-JP')}</td>`;
+  $('ptb').innerHTML=R.map(x=>`<tr${x.retire?' style="background:var(--accent-soft)"':''}><td>${x.yr}</td><td>${x.a}歳</td>${c(x.inc)}${c(x.exp)}${c(x.bal)}<td>${x.contrib?Math.round(x.contrib).toLocaleString('ja-JP'):'—'}</td><td>${x.draw?Math.round(x.draw).toLocaleString('ja-JP'):'—'}</td>${c(x.cash)}${c(x.nisa)}${c(x.total)}<td style="text-align:left;white-space:normal;min-width:140px">${x.ev}</td></tr>`).join('');
+}
+function lpEsc(s){return String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));}
+function lpRenderEvents(){
+  $('evList').innerHTML=lpEvents.length?lpEvents.map((e,i)=>`<div class="ev" data-i="${i}"><input type="text" id="evn${i}" value="${lpEsc(e.name)}" aria-label="イベント名" data-f="name"><input type="number" id="evy${i}" value="${e.year}" aria-label="年" data-f="year"><input type="number" id="eva${i}" value="${e.amount}" aria-label="金額（万円）" data-f="amount"><label><input type="checkbox" id="evo${i}" data-f="on"${e.on?' checked':''}>有効</label><button type="button" class="x" data-del="${i}" aria-label="削除">✕</button></div>`).join(''):'<p class="foot" style="margin:0">イベントはまだありません。</p>';
+}
+$('evList').addEventListener('input',e=>{const row=e.target.closest('.ev');if(!row)return;const i=+row.dataset.i,f=e.target.dataset.f;lpEvents[i][f]=f==='on'?e.target.checked:f==='name'?e.target.value:parseInt(e.target.value)||0;lpUpdate();});
+$('evList').addEventListener('click',e=>{const d=e.target.dataset.del;if(d==null)return;lpEvents.splice(+d,1);lpRenderEvents();lpUpdate();});
+$('evAdd').addEventListener('click',()=>{lpEvents.push({name:'新しいイベント',year:CY+1,amount:-50,on:true});lpRenderEvents();lpUpdate();});
+$('evEdu').addEventListener('click',()=>{
+  let n=0;[1,2,3].forEach(i=>{const cb=pg('child_benefit_'+i),ca=Math.round(pg('child_age_'+i));if(cb===0&&ca===0)return;
+    [['高校1年',15,-50],['高校2年',16,-50],['高校3年',17,-50],['大学1年',18,-100],['大学2年',19,-100],['大学3年',20,-100],['大学4年',21,-100]].forEach(([l,ag,am])=>{const yr=CY+(ag-ca);if(yr>=CY){lpEvents.push({name:`子ども${i} ${l}`,year:yr,amount:am,on:true});n++;}});});
+  $('pResetMsg').textContent=n?`教育費を${n}件追加しました（高校 年50万円・大学 年100万円）`:'子どもの手当か年齢を入れると追加できます';
+  lpRenderEvents();lpUpdate();
+});
+$('pReset').addEventListener('click',()=>{Object.keys(LP_DEF).forEach(k=>$('p_'+k).value=LP_DEF[k]);lpEvents=lpDefEvents();lpRenderEvents();lpUpdate();$('pResetMsg').textContent='初期値に戻しました';});
+
+/* ---------- 切り替え ---------- */
+function lpMode(plan){
+  $('mode-easy').hidden=plan;$('mode-plan').hidden=!plan;
+  $('tabEasy').setAttribute('aria-selected',String(!plan));$('tabPlan').setAttribute('aria-selected',String(plan));
+  lpSave('nisa-mode',plan?'plan':'easy');
+  if(plan)lpUpdate();else easyLife();
+}
+$('tabEasy').addEventListener('click',()=>lpMode(false));
+$('tabPlan').addEventListener('click',()=>lpMode(true));
+
+lpBuildSide();
+(function(){const s=lpLoad('lifeplan-nisa-v1');if(s){if(s.vals)Object.keys(s.vals).forEach(k=>{if($('p_'+k))$('p_'+k).value=s.vals[k];});if(Array.isArray(s.events))lpEvents=s.events;}})();
+lpRenderEvents();
+lpMode(location.hash==='#plan'||(location.hash!=='#easy'&&lpLoad('nisa-mode')==='plan'));
+const lpRe=()=>{if(!$('mode-plan').hidden)lpUpdate();else easyLife();};
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',lpRe);
+new MutationObserver(lpRe).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+
+/* ---------- 手数料のちがい ---------- */
+function feeCmp(){
+  const m=(+$('mN').value||100)/10000,yrs=+$('y').value,r=+$('r').value/100;
+  const cases=[['ネット証券で自分で','年0.1%',0,0.001],['銀行の窓口（つみたて投資枠）','年0.4%',0,0.004],['窓口ですすめられた商品','買うとき3.3%＋年1.5%',0.033,0.015]];
+  const fv=(buy,fee)=>{const rm=(r-fee)/12;let v=0;for(let k=0;k<yrs*12;k++){v=(v+m*(1-buy))*(1+rm);}return v;};
+  const base=fv(0,0.001);
+  $('feeCmp').innerHTML=cases.map(([t,d,b,f],i)=>{const v=fv(b,f),diff=v-base;return `<div class="box"><h3>${t}</h3><div class="foot">${d}</div><div class="v">${fmt(v)}</div><div class="foot">${i===0?'いちばん手数料が安い場合':'ネット証券より '+fmt(-diff)+' 少ない'}</div></div>`;}).join('');
+}
+['m','mN','y','yN','r','rN'].forEach(k=>$(k).addEventListener('input',feeCmp));
+$('mN').addEventListener('change',feeCmp);
+document.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>setTimeout(feeCmp,0)));
+feeCmp();
+</script>
+<script>
+/* ---------- ログイン（家計簿・ライフプランと同じアカウント）と保存 ---------- */
+const SU='https://rpalacpkyloamikjmtri.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
+const AU={token:null,refresh:null,uid:null};
+const lsGet=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
+const lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}};
+const H=(x={})=>({'Content-Type':'application/json','apikey':SK,'Authorization':'Bearer '+(AU.token||SK),...x});
+async function auRefresh(){
+  const rt=AU.refresh||lsGet('nisa_refresh');if(!rt)return false;
+  try{const r=await fetch(SU+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json','apikey':SK},body:JSON.stringify({refresh_token:rt})});
+    if(!r.ok)return false;const d=await r.json();auSet(d);return true;}catch(e){return false;}
+}
+function auSet(d){AU.token=d.access_token;AU.refresh=d.refresh_token||AU.refresh;AU.uid=(d.user&&d.user.id)||AU.uid;lsSet('nisa_refresh',AU.refresh);lsSet('nisa_uid',AU.uid);}
+async function api(path,opt={}){
+  let r=await fetch(SU+path,{...opt,headers:H(opt.headers)});
+  if(r.status===401&&await auRefresh())r=await fetch(SU+path,{...opt,headers:H(opt.headers)});
+  return r;
+}
+const gatherAll=()=>{const vals={};Object.keys(LP_DEF).forEach(k=>vals[k]=pg(k));
+  return{easy:{mYen:+$('mN').value,y:+$('y').value,r:+$('r').value,ea:+$('ea').value,es:+$('es').value,ew:+$('ew').value},plan:{vals,events:lpEvents}};};
+let syncApplying=false;
+function applyAll(d){
+  syncApplying=true;
+  try{
+    if(d.easy){const e=d.easy;if(e.mYen)setM(+e.mYen);[['y',e.y],['r',e.r],['ea',e.ea],['es',e.es],['ew',e.ew]].forEach(([k,v])=>{if(v!=null){$(k).value=v;$(k+'N').value=v;}});}
+    if(d.plan){if(d.plan.vals)Object.keys(d.plan.vals).forEach(k=>{if($('p_'+k)&&d.plan.vals[k]!=null)$('p_'+k).value=d.plan.vals[k];});if(Array.isArray(d.plan.events))lpEvents=d.plan.events.map(x=>({...x}));}
+    calc();feeCmp();lpRenderEvents();
+    if($('mode-plan').hidden)easyLife();else lpUpdate();
+  }finally{syncApplying=false;}
+}
+const acSay=t=>{$('acMsg').textContent=t;};
+function acRender(){
+  const inn=!!AU.uid;
+  $('acGuest').hidden=inn;$('acIn').hidden=!inn;
+  $('planNote').textContent=inn?'ログイン中なので、入力した数字はあなた専用の保存場所に自動で保存され、スマホとパソコンで同じ数字が使えます。本人以外は見られません。':'入力した数字は、この端末のブラウザの中にだけ保存されます。ほかの人には見えません。';
+}
+let saveTimer=null,saving=false,saveAgain=false,lastSaved=null;
+async function saveNow(){
+  saveTimer=null;if(!AU.uid)return;
+  if(saving){saveAgain=true;return;}
+  const body=gatherAll(),json=JSON.stringify(body);if(json===lastSaved)return;
+  saving=true;acSay('保存中…');
+  try{
+    const r=await api('/rest/v1/nisa_settings?on_conflict=user_key',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_key:AU.uid,settings:body,updated_at:new Date().toISOString()})});
+    if(r.ok){lastSaved=json;acSay('保存しました');}else acSay('保存できませんでした（'+r.status+'）');
+  }catch(e){acSay('保存できませんでした。通信を確認してください');}
+  finally{saving=false;if(saveAgain){saveAgain=false;saveNow();}}
+}
+function schedSave(){if(syncApplying||!AU.uid)return;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,1200);}
+document.addEventListener('input',e=>{if(e.target.closest('#mode-easy,#mode-plan'))schedSave();});
+document.addEventListener('change',e=>{if(e.target.closest('#mode-easy,#mode-plan'))schedSave();});
+document.addEventListener('click',e=>{if(e.target.closest('#mode-easy button,#mode-plan button'))setTimeout(schedSave,0);});
+async function loadMine(){
+  acSay('読み込み中…');
+  try{
+    const r=await api('/rest/v1/nisa_settings?select=settings&user_key=eq.'+AU.uid+'&limit=1');
+    if(!r.ok){acSay('読み込めませんでした（'+r.status+'）');return;}
+    const a=await r.json();
+    if(a.length&&a[0].settings){applyAll(a[0].settings);lastSaved=JSON.stringify(gatherAll());acSay('あなたの数字を読み込みました');}
+    else{acSay('はじめてのログインです。いまの数字を保存します');saveNow();}
+  }catch(e){acSay('読み込めませんでした。通信を確認してください');}
+}
+async function doLogin(ev){
+  ev.preventDefault();
+  const email=$('acEmail').value.trim(),pass=$('acPass').value;
+  if(!email||!pass){acSay('メールアドレスとパスワードを入れてください');return;}
+  acSay('ログイン中…');
+  try{
+    const r=await fetch(SU+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json','apikey':SK},body:JSON.stringify({email,password:pass})});
+    if(!r.ok){acSay('メールアドレスかパスワードが違います');return;}
+    auSet(await r.json());$('acPass').value='';acRender();await loadMine();
+  }catch(e){acSay('ログインできませんでした。通信を確認してください');}
+}
+async function doLogout(){
+  try{await fetch(SU+'/auth/v1/logout',{method:'POST',headers:H()});}catch(e){}
+  AU.token=AU.refresh=AU.uid=null;lsSet('nisa_refresh',null);lsSet('nisa_uid',null);lastSaved=null;acRender();acSay('ログアウトしました。この端末の中だけで使えます');
+}
+async function importLifeplan(){
+  if(!AU.uid)return;acSay('ライフプランの数字を読み込み中…');
+  try{
+    const [rs,re]=await Promise.all([api('/rest/v1/lifeplan_settings?select=settings&user_key=eq.'+AU.uid+'&order=updated_at.desc&limit=1'),api('/rest/v1/lifeplan_events?select=name,year,amount,enabled&user_key=eq.'+AU.uid+'&order=year.asc')]);
+    const s=rs.ok?(await rs.json())[0]:null,evs=re.ok?await re.json():[];
+    if(!s||!s.settings){acSay('ライフプランアプリに保存された数字が見つかりませんでした');return;}
+    const vals={};Object.keys(LP_DEF).forEach(k=>{if(s.settings[k]!=null&&!k.startsWith('nisa_'))vals[k]=s.settings[k];});
+    applyAll({plan:{vals,events:evs.length?evs.map(e=>({name:e.name,year:e.year,amount:e.amount,on:e.enabled!==false})):undefined}});
+    lpMode(true);schedSave();acSay('ライフプランアプリの数字を読み込みました（NISAの欄はそのままです）');
+  }catch(e){acSay('読み込めませんでした。通信を確認してください');}
+}
+$('acForm').addEventListener('submit',doLogin);
+$('acOut').addEventListener('click',doLogout);
+$('acImport').addEventListener('click',importLifeplan);
+$('acOpen').addEventListener('click',()=>{$('acForm').hidden=!$('acForm').hidden;if(!$('acForm').hidden)$('acEmail').focus();});
+(async()=>{
+  AU.uid=lsGet('nisa_uid');acRender();
+  if(AU.uid){if(await auRefresh()){acRender();loadMine();}else{AU.uid=null;lsSet('nisa_uid',null);acRender();}}
+})();
+</script>
+</body>
+</html>
